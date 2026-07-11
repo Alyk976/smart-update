@@ -1,0 +1,306 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+umask 027
+
+readonly CONFIG_FILE="/etc/smart-update/smart-update.conf"
+readonly CRITICAL_FILE="/etc/smart-update/critical-packages.conf"
+readonly FUNCTIONS_FILE="/usr/local/lib/smart-update/functions.sh"
+readonly LOCK_FILE="/run/lock/smart-update.lock"
+
+if [[ ! -r "$CONFIG_FILE" ]]; then
+    echo "Configuration absente : ${CONFIG_FILE}" >&2
+    exit 1
+fi
+
+if [[ ! -r "$FUNCTIONS_FILE" ]]; then
+    echo "Bibliothèque absente : ${FUNCTIONS_FILE}" >&2
+    exit 1
+fi
+
+# shellcheck source=/etc/smart-update/smart-update.conf
+source "$CONFIG_FILE"
+
+# shellcheck source=/usr/local/lib/smart-update/functions.sh
+source "$FUNCTIONS_FILE"
+
+mkdir -p "$REPORT_DIR"
+touch "$LOG_FILE" "$BLOCKED_LOG"
+chmod 640 "$LOG_FILE" "$BLOCKED_LOG"
+
+exec 9>"$LOCK_FILE"
+
+if ! flock -n 9; then
+    blocked "Une autre instance de Smart Update est déjà active."
+    exit 20
+fi
+
+trap 'error "Erreur ligne ${LINENO} : ${BASH_COMMAND}"' ERR
+
+declare -a UPDATE_LINES=()
+declare -a UPDATE_PACKAGES=()
+declare -a CRITICAL_UPDATES=()
+declare -a FOREIGN_PACKAGES=()
+
+load_updates() {
+    local output
+    local status
+
+    info "Recherche sécurisée des mises à jour."
+
+    set +e
+    output=$(checkupdates 2>&1)
+    status=$?
+    set -e
+
+    case "$status" in
+        0)
+            mapfile -t UPDATE_LINES <<< "$output"
+            ;;
+
+        2)
+            info "Aucune mise à jour disponible."
+            exit 0
+            ;;
+
+        *)
+            error "Échec de checkupdates :"
+            printf '%s\n' "$output" | tee -a "$LOG_FILE"
+            exit 21
+            ;;
+    esac
+
+    local line
+    local package_name
+
+    for line in "${UPDATE_LINES[@]}"; do
+        package_name=${line%% *}
+        UPDATE_PACKAGES+=("$package_name")
+    done
+
+    info "${#UPDATE_PACKAGES[@]} mise(s) à jour détectée(s)."
+
+    printf '%s\n' "${UPDATE_LINES[@]}" |
+        tee -a "$LOG_FILE"
+}
+
+check_update_count() {
+    if (( ${#UPDATE_PACKAGES[@]} > MAX_UPDATE_COUNT )); then
+        blocked \
+            "${#UPDATE_PACKAGES[@]} mises à jour détectées ; limite autorisée : ${MAX_UPDATE_COUNT}."
+
+        exit 22
+    fi
+}
+
+check_foreign_packages() {
+    mapfile -t FOREIGN_PACKAGES < <(pacman -Qqm 2>/dev/null || true)
+
+    if (( ${#FOREIGN_PACKAGES[@]} == 0 )); then
+        info "Aucun paquet étranger ou AUR installé."
+        return 0
+    fi
+
+    warning "${#FOREIGN_PACKAGES[@]} paquet(s) étranger(s)/AUR détecté(s)."
+    warning "Ils ne seront ni installés ni mis à jour par Smart Update."
+
+    printf '%s\n' "${FOREIGN_PACKAGES[@]}" |
+        sed 's/^/AUR : /' |
+        tee -a "$LOG_FILE"
+}
+
+check_critical_updates() {
+    if [[ ! -r "$CRITICAL_FILE" ]]; then
+        die "Liste des paquets critiques absente."
+    fi
+
+    local package_name
+
+    for package_name in "${UPDATE_PACKAGES[@]}"; do
+        if grep \
+            --fixed-strings \
+            --line-regexp \
+            --quiet \
+            "$package_name" \
+            "$CRITICAL_FILE"; then
+
+            CRITICAL_UPDATES+=("$package_name")
+        fi
+    done
+
+    if (( ${#CRITICAL_UPDATES[@]} == 0 )); then
+        info "Aucune mise à jour critique détectée."
+        return 0
+    fi
+
+    blocked "Mises à jour critiques détectées :"
+
+    printf '%s\n' "${CRITICAL_UPDATES[@]}" |
+        tee -a "$LOG_FILE" "$BLOCKED_LOG"
+
+    if [[ "$MODE" == "audit" ]]; then
+        warning "Mode audit : poursuite de l'analyse malgré les paquets critiques."
+        return 0
+    fi
+
+    blocked "La transaction complète est suspendue."
+    blocked "Lance manuellement sudo pacman -Syu après vérification."
+
+    exit 23
+}
+
+check_arch_news() {
+    [[ "$CHECK_ARCH_NEWS" == "yes" ]] || return 0
+
+    info "Consultation des dernières annonces Arch Linux."
+
+    local news
+    news=$(
+        curl \
+            --fail \
+            --silent \
+            --show-error \
+            --max-time 20 \
+            "https://archlinux.org/feeds/news/" ||
+            true
+    )
+
+    if [[ -z "$news" ]]; then
+        blocked "Impossible de consulter les annonces Arch Linux."
+        exit 24
+    fi
+
+    local recent_titles
+    recent_titles=$(
+        printf '%s\n' "$news" |
+            grep -o '<title>[^<]*</title>' |
+            sed -e 's/<title>//' -e 's#</title>##' |
+            tail -n +2 |
+            head -n "$ARCH_NEWS_LIMIT"
+    )
+
+    {
+        echo
+        echo "Dernières annonces Arch consultées :"
+        printf '%s\n' "$recent_titles"
+        echo
+    } >> "$LOG_FILE"
+
+    warning "Les annonces ont été consignées dans le journal."
+    warning "La détection automatique ne remplace pas leur lecture humaine."
+}
+
+simulate_transaction() {
+    info "Simulation de la transaction Pacman."
+
+    local simulation
+    local status
+    local planned_file
+    local installed_file
+    local new_packages_file
+
+    planned_file=$(mktemp)
+    installed_file=$(mktemp)
+    new_packages_file=$(mktemp)
+
+    set +e
+    simulation=$(
+        LC_ALL=C pacman -Syu \
+            --print \
+            --print-format '%n %v %r' 2>&1
+    )
+    status=$?
+    set -e
+
+    if (( status != 0 )); then
+        blocked "La simulation Pacman a échoué."
+        printf '%s
+' "$simulation" |
+            tee -a "$LOG_FILE" "$BLOCKED_LOG"
+
+        rm -f "$planned_file" "$installed_file" "$new_packages_file"
+        exit 25
+    fi
+
+    printf '%s
+' "$simulation" |
+        awk 'NF == 3 && $1 ~ /^[a-zA-Z0-9@._+:-]+$/ {print $1}' |
+        sort -u > "$planned_file"
+
+    pacman -Qq |
+        sort -u > "$installed_file"
+
+    comm -13 "$installed_file" "$planned_file" > "$new_packages_file"
+
+    {
+        echo
+        echo "Simulation de transaction :"
+        printf '%s
+' "$simulation"
+        echo
+    } >> "$LOG_FILE"
+
+    if [[ -s "$new_packages_file" ]]; then
+        blocked "Nouveaux paquets ou nouvelles dépendances détectés :"
+        tee -a "$LOG_FILE" "$BLOCKED_LOG" < "$new_packages_file"
+
+        if [[ "$ALLOW_NEW_DEPENDENCIES" != "yes" ]]; then
+            if [[ "$MODE" == "audit" ]]; then
+                warning "Mode audit : nouveaux paquets signalés sans installation."
+            else
+                rm -f "$planned_file" "$installed_file" "$new_packages_file"
+                exit 27
+            fi
+        fi
+    else
+        info "Aucun nouveau paquet détecté dans la transaction."
+    fi
+
+    rm -f "$planned_file" "$installed_file" "$new_packages_file"
+}
+
+install_updates() {
+    if [[ "$MODE" == "audit" ]]; then
+        info "Mode audit : aucune installation effectuée."
+        return 0
+    fi
+
+    if [[ "$MODE" != "guarded" ]]; then
+        die "Mode inconnu dans la configuration : ${MODE}"
+    fi
+
+    info "Installation de la mise à jour complète des dépôts officiels."
+
+    # L’entrée standard est fermée afin qu’aucune question inattendue
+    # ne soit automatiquement acceptée.
+    if ! pacman -Syu --needed </dev/null 2>&1 |
+        tee -a "$LOG_FILE"; then
+
+        blocked "Pacman a interrompu ou refusé la transaction."
+        exit 26
+    fi
+
+    date --iso-8601=seconds > /var/lib/smart-update/last-success
+    chmod 640 /var/lib/smart-update/last-success
+
+    info "Mise à jour terminée avec succès."
+}
+
+main() {
+    require_root
+    check_required_commands
+    cleanup_old_reports
+    check_network
+    check_pacman_lock
+    check_root_space
+    create_report
+    load_updates
+    check_update_count
+    check_foreign_packages
+    check_arch_news
+    check_critical_updates
+    simulate_transaction
+    install_updates
+}
+
+main "$@"
