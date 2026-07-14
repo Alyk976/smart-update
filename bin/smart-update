@@ -3,26 +3,35 @@
 set -Eeuo pipefail
 umask 027
 
-readonly CONFIG_FILE="/etc/smart-update/smart-update.conf"
-readonly CRITICAL_FILE="/etc/smart-update/critical-packages.conf"
-readonly FUNCTIONS_FILE="/usr/local/lib/smart-update/functions.sh"
+readonly SCRIPT_DIR
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+
+readonly PROJECT_ROOT
+PROJECT_ROOT=$(cd -- "${SCRIPT_DIR}/.." && pwd)
+
+readonly CONFIG_FILE="${PROJECT_ROOT}/config/smart-update.conf"
+readonly CRITICAL_FILE="${PROJECT_ROOT}/config/critical-packages.conf"
+readonly CONFIG_MODULE="${PROJECT_ROOT}/lib/config.sh"
+readonly FUNCTIONS_FILE="${PROJECT_ROOT}/lib/functions.sh"
 readonly LOCK_FILE="/run/lock/smart-update.lock"
 
-if [[ ! -r "$CONFIG_FILE" ]]; then
-    echo "Configuration absente : ${CONFIG_FILE}" >&2
+if [[ ! -r "$CONFIG_MODULE" ]]; then
+    printf 'Module de configuration absent : %s\n' "$CONFIG_MODULE" >&2
     exit 1
 fi
 
 if [[ ! -r "$FUNCTIONS_FILE" ]]; then
-    echo "Bibliothèque absente : ${FUNCTIONS_FILE}" >&2
+    printf 'Bibliothèque absente : %s\n' "$FUNCTIONS_FILE" >&2
     exit 1
 fi
 
-# shellcheck source=/etc/smart-update/smart-update.conf
-source "$CONFIG_FILE"
+# shellcheck source=lib/config.sh
+source "${PROJECT_ROOT}/lib/config.sh"
 
-# shellcheck source=/usr/local/lib/smart-update/functions.sh
-source "$FUNCTIONS_FILE"
+# shellcheck source=lib/functions.sh
+source "${PROJECT_ROOT}/lib/functions.sh"
+
+config_load "$CONFIG_FILE"
 
 mkdir -p "$REPORT_DIR"
 touch "$LOG_FILE" "$BLOCKED_LOG"
