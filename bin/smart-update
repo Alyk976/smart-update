@@ -3,16 +3,17 @@
 set -Eeuo pipefail
 umask 027
 
-readonly SCRIPT_DIR
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+readonly SCRIPT_DIR
 
-readonly PROJECT_ROOT
 PROJECT_ROOT=$(cd -- "${SCRIPT_DIR}/.." && pwd)
+readonly PROJECT_ROOT
 
 readonly CONFIG_FILE="${PROJECT_ROOT}/config/smart-update.conf"
 readonly CRITICAL_FILE="${PROJECT_ROOT}/config/critical-packages.conf"
 readonly CONFIG_MODULE="${PROJECT_ROOT}/lib/config.sh"
 readonly LOGGER_MODULE="${PROJECT_ROOT}/lib/logger.sh"
+readonly DECISION_MODULE="${PROJECT_ROOT}/lib/decision.sh"
 readonly SYSTEM_CHECKS_MODULE="${PROJECT_ROOT}/lib/system_checks.sh"
 readonly REPORT_MODULE="${PROJECT_ROOT}/lib/report.sh"
 readonly LOCK_FILE="/run/lock/smart-update.lock"
@@ -24,6 +25,11 @@ fi
 
 if [[ ! -r "$LOGGER_MODULE" ]]; then
     printf 'Module de journalisation absent : %s\n' "$LOGGER_MODULE" >&2
+    exit 1
+fi
+
+if [[ ! -r "$DECISION_MODULE" ]]; then
+    printf 'Module de décision absent : %s\n' "$DECISION_MODULE" >&2
     exit 1
 fi
 
@@ -43,11 +49,17 @@ source "${PROJECT_ROOT}/lib/config.sh"
 # shellcheck source=lib/logger.sh
 source "${PROJECT_ROOT}/lib/logger.sh"
 
+# shellcheck source=lib/decision.sh
+source "${PROJECT_ROOT}/lib/decision.sh"
+
 # shellcheck source=lib/system_checks.sh
 source "${PROJECT_ROOT}/lib/system_checks.sh"
 
 # shellcheck source=lib/report.sh
 source "${PROJECT_ROOT}/lib/report.sh"
+
+decision_reset
+
 config_load "$CONFIG_FILE"
 
 mkdir -p "$REPORT_DIR"
@@ -57,7 +69,8 @@ chmod 640 "$LOG_FILE" "$BLOCKED_LOG"
 exec 9>"$LOCK_FILE"
 
 if ! flock -n 9; then
-    logger_blocked "Une autre instance de Smart Update est déjà active."
+    decision_add "BLOCK" "Une autre instance de Smart Update est déjà active."
+    logger_blocked "${DECISION_REASONS[-1]}"
     exit 20
 fi
 
@@ -81,7 +94,7 @@ load_updates() {
 
     case "$status" in
         0)
-            mapfile -t UPDATE_LINES <<< "$output"
+            mapfile -t UPDATE_LINES <<<"$output"
             ;;
 
         2)
@@ -106,15 +119,17 @@ load_updates() {
 
     logger_info "${#UPDATE_PACKAGES[@]} mise(s) à jour détectée(s)."
 
-    printf '%s\n' "${UPDATE_LINES[@]}" |
-        tee -a "$LOG_FILE"
+    printf '%s\n' "${UPDATE_LINES[@]}" \
+        | tee -a "$LOG_FILE"
 }
 
 check_update_count() {
-    if (( ${#UPDATE_PACKAGES[@]} > MAX_UPDATE_COUNT )); then
-        logger_blocked \
+    if ((${#UPDATE_PACKAGES[@]} > MAX_UPDATE_COUNT)); then
+        decision_add \
+            "BLOCK" \
             "${#UPDATE_PACKAGES[@]} mises à jour détectées ; limite autorisée : ${MAX_UPDATE_COUNT}."
 
+        logger_blocked "${DECISION_REASONS[-1]}"
         exit 22
     fi
 }
@@ -122,22 +137,30 @@ check_update_count() {
 check_foreign_packages() {
     mapfile -t FOREIGN_PACKAGES < <(pacman -Qqm 2>/dev/null || true)
 
-    if (( ${#FOREIGN_PACKAGES[@]} == 0 )); then
+    if ((${#FOREIGN_PACKAGES[@]} == 0)); then
         logger_info "Aucun paquet étranger ou AUR installé."
         return 0
     fi
 
-    logger_warning "${#FOREIGN_PACKAGES[@]} paquet(s) étranger(s)/AUR détecté(s)."
-    logger_warning "Ils ne seront ni installés ni mis à jour par Smart Update."
+    decision_add \
+        "WARNING" \
+        "${#FOREIGN_PACKAGES[@]} paquet(s) étranger(s)/AUR détecté(s). Ils ne seront ni installés ni mis à jour par Smart Update."
 
-    printf '%s\n' "${FOREIGN_PACKAGES[@]}" |
-        sed 's/^/AUR : /' |
-        tee -a "$LOG_FILE"
+    logger_warning "${DECISION_REASONS[-1]}"
+
+    printf '%s\n' "${FOREIGN_PACKAGES[@]}" \
+        | sed 's/^/AUR : /' \
+        | tee -a "$LOG_FILE"
 }
 
 check_critical_updates() {
     if [[ ! -r "$CRITICAL_FILE" ]]; then
-        logger_die "Liste des paquets critiques absente."
+        decision_add \
+            "BLOCK" \
+            "Liste des paquets critiques absente."
+
+        logger_blocked "${DECISION_REASONS[-1]}"
+        exit 21
     fi
 
     local package_name
@@ -154,23 +177,34 @@ check_critical_updates() {
         fi
     done
 
-    if (( ${#CRITICAL_UPDATES[@]} == 0 )); then
+    if ((${#CRITICAL_UPDATES[@]} == 0)); then
         logger_info "Aucune mise à jour critique détectée."
         return 0
     fi
 
-    logger_blocked "Mises à jour critiques détectées :"
+    decision_add \
+        "BLOCK" \
+        "Mises à jour critiques détectées :"
 
-    printf '%s\n' "${CRITICAL_UPDATES[@]}" |
-        tee -a "$LOG_FILE" "$BLOCKED_LOG"
+    logger_blocked "${DECISION_REASONS[-1]}"
+
+    printf '%s\n' "${CRITICAL_UPDATES[@]}" \
+        | tee -a "$LOG_FILE" "$BLOCKED_LOG"
 
     if [[ "$MODE" == "audit" ]]; then
-        logger_warning "Mode audit : poursuite de l'analyse malgré les paquets critiques."
+        decision_add \
+            "WARNING" \
+            "Mode audit : poursuite de l'analyse malgré les paquets critiques."
+
+        logger_warning "${DECISION_REASONS[-1]}"
         return 0
     fi
 
-    logger_blocked "La transaction complète est suspendue."
-    logger_blocked "Lance manuellement sudo pacman -Syu après vérification."
+    decision_add \
+        "BLOCK" \
+        "La transaction complète est suspendue. Lance manuellement sudo pacman -Syu après vérification."
+
+    logger_blocked "${DECISION_REASONS[-1]}"
 
     exit 23
 }
@@ -185,24 +219,28 @@ check_arch_news() {
         curl \
             --fail \
             --silent \
-            --show-logger_error \
+            --show-error \
             --max-time 20 \
-            "https://archlinux.org/feeds/news/" ||
-            true
+            "https://archlinux.org/feeds/news/" \
+            || true
     )
 
     if [[ -z "$news" ]]; then
-        logger_blocked "Impossible de consulter les annonces Arch Linux."
+        decision_add \
+            "BLOCK" \
+            "Impossible de consulter les annonces Arch Linux."
+
+        logger_blocked "${DECISION_REASONS[-1]}"
         exit 24
     fi
 
     local recent_titles
     recent_titles=$(
-        printf '%s\n' "$news" |
-            grep -o '<title>[^<]*</title>' |
-            sed -e 's/<title>//' -e 's#</title>##' |
-            tail -n +2 |
-            head -n "$ARCH_NEWS_LIMIT"
+        printf '%s\n' "$news" \
+            | grep -o '<title>[^<]*</title>' \
+            | sed -e 's/<title>//' -e 's#</title>##' \
+            | tail -n +2 \
+            | head -n "$ARCH_NEWS_LIMIT"
     )
 
     {
@@ -210,10 +248,19 @@ check_arch_news() {
         echo "Dernières annonces Arch consultées :"
         printf '%s\n' "$recent_titles"
         echo
-    } >> "$LOG_FILE"
+    } >>"$LOG_FILE"
 
-    logger_warning "Les annonces ont été consignées dans le journal."
-    logger_warning "La détection automatique ne remplace pas leur lecture humaine."
+    decision_add \
+        "WARNING" \
+        "Les annonces ont été consignées dans le journal."
+
+    logger_warning "${DECISION_REASONS[-1]}"
+
+    decision_add \
+        "WARNING" \
+        "La détection automatique ne remplace pas leur lecture humaine."
+
+    logger_warning "${DECISION_REASONS[-1]}"
 }
 
 simulate_transaction() {
@@ -238,25 +285,30 @@ simulate_transaction() {
     status=$?
     set -e
 
-    if (( status != 0 )); then
-        logger_blocked "La simulation Pacman a échoué."
+    if ((status != 0)); then
+        decision_add \
+            "BLOCK" \
+            "La simulation Pacman a échoué."
+
+        logger_blocked "${DECISION_REASONS[-1]}"
+
         printf '%s
-' "$simulation" |
-            tee -a "$LOG_FILE" "$BLOCKED_LOG"
+' "$simulation" \
+            | tee -a "$LOG_FILE" "$BLOCKED_LOG"
 
         rm -f "$planned_file" "$installed_file" "$new_packages_file"
         exit 25
     fi
 
     printf '%s
-' "$simulation" |
-        awk 'NF == 3 && $1 ~ /^[a-zA-Z0-9@._+:-]+$/ {print $1}' |
-        sort -u > "$planned_file"
+' "$simulation" \
+        | awk 'NF == 3 && $1 ~ /^[a-zA-Z0-9@._+:-]+$/ {print $1}' \
+        | sort -u >"$planned_file"
 
-    pacman -Qq |
-        sort -u > "$installed_file"
+    pacman -Qq \
+        | sort -u >"$installed_file"
 
-    comm -13 "$installed_file" "$planned_file" > "$new_packages_file"
+    comm -13 "$installed_file" "$planned_file" >"$new_packages_file"
 
     {
         echo
@@ -264,15 +316,24 @@ simulate_transaction() {
         printf '%s
 ' "$simulation"
         echo
-    } >> "$LOG_FILE"
+    } >>"$LOG_FILE"
 
     if [[ -s "$new_packages_file" ]]; then
-        logger_blocked "Nouveaux paquets ou nouvelles dépendances détectés :"
-        tee -a "$LOG_FILE" "$BLOCKED_LOG" < "$new_packages_file"
+        decision_add \
+            "BLOCK" \
+            "Nouveaux paquets ou nouvelles dépendances détectés :"
+
+        logger_blocked "${DECISION_REASONS[-1]}"
+
+        tee -a "$LOG_FILE" "$BLOCKED_LOG" <"$new_packages_file"
 
         if [[ "$ALLOW_NEW_DEPENDENCIES" != "yes" ]]; then
             if [[ "$MODE" == "audit" ]]; then
-                logger_warning "Mode audit : nouveaux paquets signalés sans installation."
+                decision_add \
+                    "WARNING" \
+                    "Mode audit : nouveaux paquets signalés sans installation."
+
+                logger_warning "${DECISION_REASONS[-1]}"
             else
                 rm -f "$planned_file" "$installed_file" "$new_packages_file"
                 exit 27
@@ -292,21 +353,31 @@ install_updates() {
     fi
 
     if [[ "$MODE" != "guarded" ]]; then
-        logger_die "Mode inconnu dans la configuration : ${MODE}"
+        decision_add \
+            "BLOCK" \
+            "Mode inconnu dans la configuration : ${MODE}"
+
+        logger_blocked "${DECISION_REASONS[-1]}"
+        exit 28
     fi
 
     logger_info "Installation de la mise à jour complète des dépôts officiels."
 
     # L’entrée standard est fermée afin qu’aucune question inattendue
     # ne soit automatiquement acceptée.
-    if ! pacman -Syu --needed </dev/null 2>&1 |
-        tee -a "$LOG_FILE"; then
 
-        logger_blocked "Pacman a interrompu ou refusé la transaction."
+    if ! pacman -Syu --needed </dev/null 2>&1 \
+        | tee -a "$LOG_FILE"; then
+
+        decision_add \
+            "BLOCK" \
+            "Pacman a interrompu ou refusé la transaction."
+
+        logger_blocked "${DECISION_REASONS[-1]}"
         exit 26
     fi
 
-    date --iso-8601=seconds > /var/lib/smart-update/last-success
+    date --iso-8601=seconds >/var/lib/smart-update/last-success
     chmod 640 /var/lib/smart-update/last-success
 
     logger_info "Mise à jour terminée avec succès."
