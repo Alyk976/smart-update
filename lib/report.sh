@@ -17,10 +17,40 @@ create_report() {
         echo
         echo "Paquets étrangers/AUR :"
         pacman -Qm || true
-    } > "$REPORT_FILE"
+    } >"$REPORT_FILE"
 
     chmod 640 "$REPORT_FILE"
     logger_info "Rapport créé : ${REPORT_FILE}"
+}
+
+report_finalize() {
+    {
+        echo
+        echo "===================================================="
+        echo "Décision finale"
+        echo "===================================================="
+        echo
+        echo "${DECISION_FINAL}"
+        echo
+        echo "Décisions enregistrées :"
+
+        if ((${#DECISION_REASONS[@]} == 0)); then
+            echo "Aucune décision enregistrée."
+        else
+            local index
+
+            for index in "${!DECISION_REASONS[@]}"; do
+                printf '[%s] %s\n' \
+                    "${DECISION_TYPES[$index]}" \
+                    "${DECISION_REASONS[$index]}"
+            done
+        fi
+
+        echo
+        echo "Fin du rapport : $(date --iso-8601=seconds)"
+    } >>"$REPORT_FILE"
+
+    logger_info "Rapport finalisé : ${REPORT_FILE}"
 }
 
 cleanup_old_reports() {

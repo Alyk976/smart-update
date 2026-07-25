@@ -6,10 +6,12 @@
 # ==========================================
 
 DECISION_FINAL="ALLOW"
+DECISION_TYPES=()
 DECISION_REASONS=()
 
 decision_reset() {
     DECISION_FINAL="ALLOW"
+    DECISION_TYPES=()
     DECISION_REASONS=()
 }
 
@@ -18,7 +20,7 @@ decision_add() {
     local reason="${2:-}"
 
     case "$decision" in
-        ALLOW|WARNING|BLOCK)
+        ALLOW | WARNING | BLOCK)
             ;;
         *)
             printf 'Invalid decision: %s\n' "$decision" >&2
@@ -26,7 +28,10 @@ decision_add() {
             ;;
     esac
 
-    [[ -n "$reason" ]] && DECISION_REASONS+=("$reason")
+    if [[ -n "$reason" ]]; then
+        DECISION_TYPES+=("$decision")
+        DECISION_REASONS+=("$reason")
+    fi
 
     case "$decision" in
         BLOCK)

@@ -398,6 +398,7 @@ main() {
     check_critical_updates
     simulate_transaction
     install_updates
+    report_finalize
 }
 
 main "$@"
