@@ -43,6 +43,19 @@ report_finalize() {
                 printf '[%s] %s\n' \
                     "${DECISION_TYPES[$index]}" \
                     "${DECISION_REASONS[$index]}"
+
+                case "${DECISION_REASONS[$index]}" in
+                    "Mises à jour critiques détectées :")
+                        if ((${#CRITICAL_UPDATES[@]} > 0)); then
+                            printf '    - %s\n' "${CRITICAL_UPDATES[@]}"
+                        fi
+                        ;;
+                    "Nouveaux paquets ou nouvelles dépendances détectés :")
+                        if ((${#NEW_PACKAGES[@]} > 0)); then
+                            printf '    - %s\n' "${NEW_PACKAGES[@]}"
+                        fi
+                        ;;
+                esac
             done
         fi
 

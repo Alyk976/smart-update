@@ -318,14 +318,17 @@ simulate_transaction() {
         echo
     } >>"$LOG_FILE"
 
-    if [[ -s "$new_packages_file" ]]; then
+    mapfile -t NEW_PACKAGES <"$new_packages_file"
+
+    if ((${#NEW_PACKAGES[@]} > 0)); then
         decision_add \
             "BLOCK" \
             "Nouveaux paquets ou nouvelles dépendances détectés :"
 
         logger_blocked "${DECISION_REASONS[-1]}"
 
-        tee -a "$LOG_FILE" "$BLOCKED_LOG" <"$new_packages_file"
+        printf '%s\n' "${NEW_PACKAGES[@]}" \
+            | tee -a "$LOG_FILE" "$BLOCKED_LOG"
 
         if [[ "$ALLOW_NEW_DEPENDENCIES" != "yes" ]]; then
             if [[ "$MODE" == "audit" ]]; then
