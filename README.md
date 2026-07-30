@@ -56,7 +56,6 @@ This architecture allows new policies and features to be added with minimal impa
 
 ---
 
-
 ## Project Structure
 
 ```text
@@ -88,7 +87,6 @@ smart-update-v2/
 This directory layout keeps the project modular and scalable while clearly separating execution, configuration, documentation, testing and core business logic.
 
 ---
-
 
 ## Requirements
 
@@ -122,7 +120,6 @@ Smart Update performs system maintenance and package management operations. As a
 
 ---
 
-
 ## Future Vision
 
 Smart Update is designed to remain a deterministic, policy-driven update decision engine.
@@ -146,6 +143,39 @@ Potential future capabilities include:
 The AI advisor will never replace the policy engine or make update decisions autonomously. It will consume the structured output of Smart Update and provide explanations and recommendations only.
 
 AI integration will remain **optional**, allowing Smart Update to operate entirely offline and without external services when desired.
+
+---
+
+## Installation
+
+### Clone the Repository
+
+```bash
+git clone git@github.com:Alyk976/smart-update-v2.git
+cd smart-update-v2
+```
+
+### Verify Your Environment
+
+Smart Update currently targets **Arch Linux** and requires the following tools:
+
+```bash
+bash --version
+pacman --version
+systemctl --version
+```
+
+### Ready to Go
+
+Smart Update is currently designed to run directly from the repository.
+
+No installation script or package is required during development.
+
+Once the repository has been cloned and the requirements are met, you can proceed with the project configuration.
+
+> **Note**
+>
+> Installation packages and automated deployment methods may be introduced in future releases.
 
 ---
 
