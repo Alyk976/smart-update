@@ -36,6 +36,26 @@ Instead of simply executing an update, Smart Update explains every decision it m
 
 ---
 
+## Project Architecture
+
+Smart Update is designed around a modular architecture where each component has a single responsibility.
+
+Instead of concentrating all functionality into a single script, the project separates the execution workflow, business logic, configuration, testing and system integration into dedicated modules. This organization improves maintainability, simplifies testing and makes the project easier to extend.
+
+### Core Components
+
+| Directory | Responsibility |
+|-----------|----------------|
+| `bin/` | Application entry point and update workflow |
+| `lib/` | Decision engine, policies, logging and reporting modules |
+| `config/` | Default configuration files |
+| `tests/` | Automated regression and unit tests |
+| `systemd/` | Service and timer units for scheduled execution |
+
+This architecture allows new policies and features to be added with minimal impact on the existing codebase while keeping the update workflow predictable and easy to understand.
+
+---
+
 ## Project Status
 
 Current version: **v0.2-dev**
