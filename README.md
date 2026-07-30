@@ -179,6 +179,61 @@ Once the repository has been cloned and the requirements are met, you can procee
 
 ---
 
+## Configuration
+
+Smart Update is configured through:
+
+```text
+config/smart-update.conf
+```
+
+The default configuration uses **audit mode**, which analyzes the update transaction without installing packages.
+
+### Operating Mode
+
+| Value | Behavior |
+|-------|----------|
+| `audit` | Analyze the system and produce a decision without installing updates. |
+| `guarded` | Allow automatic installation only when no blocking risk is detected. |
+
+```bash
+MODE="audit"
+```
+
+### Safety Policies
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `ALLOW_AUR` | `no` | Restricts updates to official repositories. |
+| `ALLOW_REMOVALS` | `no` | Blocks transactions that remove installed packages. |
+| `ALLOW_NEW_DEPENDENCIES` | `no` | Blocks automatically introduced dependencies. |
+| `ALLOW_REPLACEMENTS` | `no` | Blocks package replacements. |
+| `ALLOW_OVERWRITE` | `no` | Prevents the use of Pacman's `--overwrite` option. |
+| `MAX_UPDATE_COUNT` | `500` | Limits the number of packages in one transaction. |
+| `MIN_ROOT_FREE_MIB` | `4096` | Requires at least 4096 MiB of free space on `/`. |
+
+### Arch News and Automation
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `CHECK_ARCH_NEWS` | `yes` | Enables inspection of recent Arch Linux announcements. |
+| `ARCH_NEWS_LIMIT` | `10` | Defines how many recent announcements are examined. |
+| `AUTO_REBOOT` | `no` | Prevents automatic system reboots. |
+| `AUTO_SNAPSHOT` | `no` | Prevents automatic snapshot creation. |
+
+### Logs and Reports
+
+| Setting | Default |
+|---------|---------|
+| `REPORT_RETENTION_DAYS` | `90` |
+| `LOG_FILE` | `/var/log/smart-update/smart-update.log` |
+| `BLOCKED_LOG` | `/var/log/smart-update/blocked.log` |
+| `REPORT_DIR` | `/var/log/smart-update/reports` |
+
+Review each setting before enabling `guarded` mode. The configuration file is sourced as Bash, so values must preserve the expected syntax and quoting.
+
+---
+
 ## Project Status
 
 Current version: **v0.2-dev**
