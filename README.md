@@ -56,6 +56,39 @@ This architecture allows new policies and features to be added with minimal impa
 
 ---
 
+
+## Project Structure
+
+```text
+smart-update-v2/
+├── bin/            # Application entry point
+├── config/         # Configuration files and policies
+├── docs/           # Project documentation
+├── lib/            # Core modules
+├── scripts/        # Development and maintenance scripts
+├── systemd/        # Service and timer units
+├── tests/          # Automated test suite
+├── PROGRESS.md     # Development progress tracking
+└── README.md       # Project documentation
+```
+
+### Directory Overview
+
+| Directory | Purpose |
+|-----------|---------|
+| `bin/` | Contains the main executable that orchestrates the update workflow. |
+| `config/` | Stores configuration files and policy definitions used by the decision engine. |
+| `docs/` | Contains architecture, development, user and vision documentation. |
+| `lib/` | Implements the project's core logic, including policies, decisions, logging, reporting and system checks. |
+| `scripts/` | Reserved for development and maintenance utilities. |
+| `systemd/` | Provides service and timer units for scheduled execution. |
+| `tests/` | Contains the automated regression and unit test suite. |
+| `PROGRESS.md` | Tracks completed work, milestones and upcoming tasks. |
+
+This directory layout keeps the project modular and scalable while clearly separating execution, configuration, documentation, testing and core business logic.
+
+---
+
 ## Project Status
 
 Current version: **v0.2-dev**
