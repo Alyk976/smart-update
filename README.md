@@ -89,6 +89,39 @@ This directory layout keeps the project modular and scalable while clearly separ
 
 ---
 
+
+## Requirements
+
+Smart Update is currently developed and tested exclusively on **Arch Linux**.
+
+### Software Requirements
+
+| Component | Requirement |
+|-----------|-------------|
+| Operating System | Arch Linux |
+| Bash | Version 5.2 or later |
+| pacman | Native Arch Linux package manager |
+| systemd | Required for scheduled execution |
+| Git | Required to clone the repository |
+
+### Permissions
+
+Smart Update performs system maintenance and package management operations. As a result, it must be executed with **root privileges** or through `sudo`.
+
+### Tested Environment
+
+| Component | Status |
+|-----------|--------|
+| Arch Linux | ✅ Supported |
+| Arch-based distributions (Manjaro, EndeavourOS, CachyOS, etc.) | ⚠️ Not officially tested |
+| Other Linux distributions | ❌ Not supported |
+
+> **Note**
+>
+> Smart Update relies on Arch Linux's native package management tools and system architecture. Compatibility with Arch-based distributions may be evaluated in future releases.
+
+---
+
 ## Project Status
 
 Current version: **v0.2-dev**
