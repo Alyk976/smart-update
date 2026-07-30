@@ -122,6 +122,33 @@ Smart Update performs system maintenance and package management operations. As a
 
 ---
 
+
+## Future Vision
+
+Smart Update is designed to remain a deterministic, policy-driven update decision engine.
+
+In the long term, the project aims to introduce an **optional AI advisor** capable of assisting system administrators while preserving the deterministic behavior of the policy engine.
+
+The guiding principle of this evolution is:
+
+> **The AI advises. Policies decide. The administrator remains in control.**
+
+Potential future capabilities include:
+
+- AI-assisted update risk analysis
+- Human-readable explanations for policy decisions
+- Intelligent update summaries
+- Configuration assistance
+- Log and report analysis
+- Interactive troubleshooting
+- Historical execution analysis and recommendations
+
+The AI advisor will never replace the policy engine or make update decisions autonomously. It will consume the structured output of Smart Update and provide explanations and recommendations only.
+
+AI integration will remain **optional**, allowing Smart Update to operate entirely offline and without external services when desired.
+
+---
+
 ## Project Status
 
 Current version: **v0.2-dev**
