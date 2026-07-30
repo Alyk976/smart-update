@@ -2,9 +2,13 @@
 
 > **Think first. Update safely.**
 
-Smart Update v2 is a policy-driven update decision engine for Arch Linux.
+Smart Update v2 is not another wrapper around `pacman`.
 
-Rather than blindly installing every available package, Smart Update analyzes the system, evaluates potential risks, applies administrator-defined policies, and determines whether an update should be allowed, warned about, or blocked.
+It is a policy-driven update decision engine for Arch Linux that evaluates every update before any package is installed.
+
+Rather than blindly executing `pacman -Syu`, Smart Update analyzes the system, evaluates potential risks, applies administrator-defined policies, and determines whether an update should be allowed, warned about or blocked.
+
+Every decision is deterministic, explainable and fully controlled by administrator-defined policies.
 
 The project is designed to provide a safer, more transparent and fully explainable update workflow while remaining fully compatible with the Arch Linux ecosystem and Pacman.
 
@@ -12,11 +16,11 @@ The project is designed to provide a safer, more transparent and fully explainab
 
 ## Why Smart Update?
 
-Keeping an Arch Linux system up to date is essential, but blindly installing every available package is not always the safest approach.
+Keeping an Arch Linux system up to date is essential, but blindly executing `pacman -Syu` is not always the safest choice.
 
-Smart Update introduces a policy-driven decision layer between the administrator and Pacman. Before any installation begins, the system is analyzed against configurable rules to identify situations that may require additional attention, such as critical package upgrades or new dependencies.
+Smart Update introduces a deterministic decision layer between the administrator and Pacman. Every update is evaluated before execution using administrator-defined policies that identify potential risks before the system is modified.
 
-Instead of simply executing an update, Smart Update explains every decision it makes, allowing administrators to understand exactly why an update is allowed, warned about or blocked.
+Instead of simply installing packages, Smart Update explains every decision it makes, allowing administrators to understand exactly why an update is allowed, warned about or blocked.
 
 ---
 
@@ -231,6 +235,41 @@ MODE="audit"
 | `REPORT_DIR` | `/var/log/smart-update/reports` |
 
 Review each setting before enabling `guarded` mode. The configuration file is sourced as Bash, so values must preserve the expected syntax and quoting.
+
+---
+
+## Quick Start
+
+The example below performs a complete system analysis without installing any packages.
+
+```bash
+sudo ./bin/smart-update
+```
+
+During execution, Smart Update inspects the current system, evaluates every configured policy and determines whether the update transaction should be allowed, warned about or blocked.
+
+### Decision Levels
+
+| Decision | Description |
+|-----------|-------------|
+| `ALLOW` | The transaction satisfies every configured policy and may proceed safely. |
+| `WARNING` | The transaction is allowed but requires administrator review before continuing. |
+| `BLOCK` | One or more configured policies prevent the transaction from being executed. |
+
+### Generated Output
+
+Each execution produces:
+
+- A detailed execution report
+- Structured log files
+- A summary of every evaluated policy
+- A final decision with a complete explanation
+
+Rather than simply executing `pacman -Syu`, Smart Update explains **why** an update is considered safe, risky or blocked.
+
+> **The objective is not to automate package installation.**
+>
+> **The objective is to automate update decisions.**
 
 ---
 
