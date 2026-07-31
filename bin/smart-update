@@ -16,6 +16,7 @@ readonly LOGGER_MODULE="${PROJECT_ROOT}/lib/logger.sh"
 readonly DECISION_MODULE="${PROJECT_ROOT}/lib/decision.sh"
 readonly SYSTEM_CHECKS_MODULE="${PROJECT_ROOT}/lib/system_checks.sh"
 readonly REPORT_MODULE="${PROJECT_ROOT}/lib/report.sh"
+readonly ENGINE_MODULE="${PROJECT_ROOT}/lib/engine.sh"
 readonly LOCK_FILE="/run/lock/smart-update.lock"
 
 if [[ ! -r "$CONFIG_MODULE" ]]; then
@@ -43,6 +44,11 @@ if [[ ! -r "$REPORT_MODULE" ]]; then
     exit 1
 fi
 
+if [[ ! -r "$ENGINE_MODULE" ]]; then
+    printf 'Module moteur absent : %s\n' "$ENGINE_MODULE" >&2
+    exit 1
+fi
+
 # shellcheck source=lib/config.sh
 source "${PROJECT_ROOT}/lib/config.sh"
 
@@ -57,6 +63,9 @@ source "${PROJECT_ROOT}/lib/system_checks.sh"
 
 # shellcheck source=lib/report.sh
 source "${PROJECT_ROOT}/lib/report.sh"
+
+# shellcheck source=lib/engine.sh
+source "${PROJECT_ROOT}/lib/engine.sh"
 
 decision_reset
 
@@ -121,17 +130,6 @@ load_updates() {
 
     printf '%s\n' "${UPDATE_LINES[@]}" \
         | tee -a "$LOG_FILE"
-}
-
-check_update_count() {
-    if ((${#UPDATE_PACKAGES[@]} > MAX_UPDATE_COUNT)); then
-        decision_add \
-            "BLOCK" \
-            "${#UPDATE_PACKAGES[@]} mises à jour détectées ; limite autorisée : ${MAX_UPDATE_COUNT}."
-
-        logger_blocked "${DECISION_REASONS[-1]}"
-        exit 22
-    fi
 }
 
 check_foreign_packages() {
@@ -394,8 +392,12 @@ main() {
     check_pacman_lock
     check_root_space
     create_report
+
     load_updates
-    check_update_count
+
+    engine_load_policies
+    engine_run_policies
+
     check_foreign_packages
     check_arch_news
     check_critical_updates
