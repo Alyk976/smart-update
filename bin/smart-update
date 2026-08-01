@@ -10,7 +10,6 @@ PROJECT_ROOT=$(cd -- "${SCRIPT_DIR}/.." && pwd)
 readonly PROJECT_ROOT
 
 readonly CONFIG_FILE="${PROJECT_ROOT}/config/smart-update.conf"
-readonly CRITICAL_FILE="${PROJECT_ROOT}/config/critical-packages.conf"
 readonly CONFIG_MODULE="${PROJECT_ROOT}/lib/config.sh"
 readonly LOGGER_MODULE="${PROJECT_ROOT}/lib/logger.sh"
 readonly DECISION_MODULE="${PROJECT_ROOT}/lib/decision.sh"
@@ -149,62 +148,6 @@ check_foreign_packages() {
     printf '%s\n' "${FOREIGN_PACKAGES[@]}" \
         | sed 's/^/AUR : /' \
         | tee -a "$LOG_FILE"
-}
-
-check_critical_updates() {
-    if [[ ! -r "$CRITICAL_FILE" ]]; then
-        decision_add \
-            "BLOCK" \
-            "Liste des paquets critiques absente."
-
-        logger_blocked "${DECISION_REASONS[-1]}"
-        exit 21
-    fi
-
-    local package_name
-
-    for package_name in "${UPDATE_PACKAGES[@]}"; do
-        if grep \
-            --fixed-strings \
-            --line-regexp \
-            --quiet \
-            "$package_name" \
-            "$CRITICAL_FILE"; then
-
-            CRITICAL_UPDATES+=("$package_name")
-        fi
-    done
-
-    if ((${#CRITICAL_UPDATES[@]} == 0)); then
-        logger_info "Aucune mise à jour critique détectée."
-        return 0
-    fi
-
-    decision_add \
-        "BLOCK" \
-        "Mises à jour critiques détectées :"
-
-    logger_blocked "${DECISION_REASONS[-1]}"
-
-    printf '%s\n' "${CRITICAL_UPDATES[@]}" \
-        | tee -a "$LOG_FILE" "$BLOCKED_LOG"
-
-    if [[ "$MODE" == "audit" ]]; then
-        decision_add \
-            "WARNING" \
-            "Mode audit : poursuite de l'analyse malgré les paquets critiques."
-
-        logger_warning "${DECISION_REASONS[-1]}"
-        return 0
-    fi
-
-    decision_add \
-        "BLOCK" \
-        "La transaction complète est suspendue. Lance manuellement sudo pacman -Syu après vérification."
-
-    logger_blocked "${DECISION_REASONS[-1]}"
-
-    exit 23
 }
 
 check_arch_news() {
@@ -400,7 +343,6 @@ main() {
 
     check_foreign_packages
     check_arch_news
-    check_critical_updates
     simulate_transaction
     install_updates
     report_finalize
