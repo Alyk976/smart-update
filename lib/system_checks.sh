@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 require_root() {
-    if (( EUID != 0 )); then
+    if ((EUID != 0)); then
         logger_die "Smart Update doit être exécuté avec les droits root."
     fi
 }
@@ -27,6 +27,10 @@ check_required_commands() {
         df
         flock
     )
+
+    if [[ "${CHECK_ARCH_NEWS:-no}" == "yes" ]]; then
+        commands+=(xmllint)
+    fi
 
     local command_name
 
@@ -55,8 +59,8 @@ check_root_space() {
     local available_mib
 
     available_mib=$(
-        df --output=avail -BM / |
-            awk 'NR == 2 {
+        df --output=avail -BM / \
+            | awk 'NR == 2 {
                 gsub(/M/, "", $1)
                 print $1
             }'
@@ -68,7 +72,7 @@ check_root_space() {
 
     logger_info "Espace disponible sur / : ${available_mib} Mio."
 
-    if (( available_mib < MIN_ROOT_FREE_MIB )); then
+    if ((available_mib < MIN_ROOT_FREE_MIB)); then
         logger_blocked "Espace insuffisant : ${available_mib} Mio disponibles."
         exit 10
     fi
@@ -79,9 +83,9 @@ check_pacman_lock() {
         return 0
     fi
 
-    if pgrep -x pacman >/dev/null 2>&1 ||
-       pgrep -x yay >/dev/null 2>&1 ||
-       pgrep -x paru >/dev/null 2>&1; then
+    if pgrep -x pacman >/dev/null 2>&1 \
+        || pgrep -x yay >/dev/null 2>&1 \
+        || pgrep -x paru >/dev/null 2>&1; then
 
         logger_blocked "Un gestionnaire de paquets est déjà en cours d’exécution."
         exit 11

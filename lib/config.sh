@@ -7,21 +7,46 @@
 
 config_validate_mode() {
     case "${MODE:-}" in
-        audit|guarded)
+        audit | guarded)
             return 0
             ;;
         *)
-            printf 'Invalid MODE value: %s\n' "${MODE:-undefined}" >&2
+            printf 'Invalid MODE value: %s\n' \
+                "${MODE:-undefined}" >&2
             return 1
             ;;
     esac
 }
 
 config_validate_max_update_count() {
-    if [[ ! "${MAX_UPDATE_COUNT:-}" =~ ^[0-9]+$ ]] ||
-       (( MAX_UPDATE_COUNT <= 0 )); then
+    if [[ ! "${MAX_UPDATE_COUNT:-}" =~ ^[0-9]+$ ]] \
+        || ((MAX_UPDATE_COUNT <= 0)); then
+
         printf 'Invalid MAX_UPDATE_COUNT value: %s\n' \
             "${MAX_UPDATE_COUNT:-undefined}" >&2
+        return 1
+    fi
+}
+
+config_validate_arch_news_enabled() {
+    case "${CHECK_ARCH_NEWS:-}" in
+        yes | no)
+            return 0
+            ;;
+        *)
+            printf 'Invalid CHECK_ARCH_NEWS value: %s\n' \
+                "${CHECK_ARCH_NEWS:-undefined}" >&2
+            return 1
+            ;;
+    esac
+}
+
+config_validate_arch_news_limit() {
+    if [[ ! "${ARCH_NEWS_LIMIT:-}" =~ ^[0-9]+$ ]] \
+        || ((ARCH_NEWS_LIMIT <= 0)); then
+
+        printf 'Invalid ARCH_NEWS_LIMIT value: %s\n' \
+            "${ARCH_NEWS_LIMIT:-undefined}" >&2
         return 1
     fi
 }
@@ -45,4 +70,6 @@ config_load() {
 
     config_validate_mode || return 1
     config_validate_max_update_count || return 1
+    config_validate_arch_news_enabled || return 1
+    config_validate_arch_news_limit || return 1
 }
