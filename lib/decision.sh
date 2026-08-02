@@ -44,3 +44,17 @@ decision_add() {
             ;;
     esac
 }
+
+decision_allows_installation() {
+    case "${DECISION_FINAL:-}" in
+        ALLOW | WARNING)
+            return 0
+            ;;
+        BLOCK)
+            return 1
+            ;;
+        *)
+            return 2
+            ;;
+    esac
+}

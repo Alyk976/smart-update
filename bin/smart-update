@@ -245,25 +245,31 @@ simulate_transaction() {
     mapfile -t NEW_PACKAGES <"$new_packages_file"
 
     if ((${#NEW_PACKAGES[@]} > 0)); then
-        decision_add \
-            "BLOCK" \
-            "Nouveaux paquets ou nouvelles dépendances détectés :"
+        if [[ "$ALLOW_NEW_DEPENDENCIES" == "yes" ]]; then
+            decision_add \
+                "WARNING" \
+                "Nouveaux paquets ou nouvelles dépendances détectés :"
 
-        logger_blocked "${DECISION_REASONS[-1]}"
+            logger_warning "${DECISION_REASONS[-1]}"
 
-        printf '%s\n' "${NEW_PACKAGES[@]}" \
-            | tee -a "$LOG_FILE" "$BLOCKED_LOG"
+            printf '%s\n' "${NEW_PACKAGES[@]}" \
+                | tee -a "$LOG_FILE"
+        else
+            decision_add \
+                "BLOCK" \
+                "Nouveaux paquets ou nouvelles dépendances détectés :"
 
-        if [[ "$ALLOW_NEW_DEPENDENCIES" != "yes" ]]; then
+            logger_blocked "${DECISION_REASONS[-1]}"
+
+            printf '%s\n' "${NEW_PACKAGES[@]}" \
+                | tee -a "$LOG_FILE" "$BLOCKED_LOG"
+
             if [[ "$MODE" == "audit" ]]; then
                 decision_add \
                     "WARNING" \
                     "Mode audit : nouveaux paquets signalés sans installation."
 
                 logger_warning "${DECISION_REASONS[-1]}"
-            else
-                rm -f "$planned_file" "$installed_file" "$new_packages_file"
-                exit 27
             fi
         fi
     else
@@ -271,6 +277,34 @@ simulate_transaction() {
     fi
 
     rm -f "$planned_file" "$installed_file" "$new_packages_file"
+}
+
+enforce_final_decision() {
+    local gate_status
+
+    if decision_allows_installation; then
+        return 0
+    else
+        gate_status=$?
+    fi
+
+    case "$gate_status" in
+        1)
+            logger_blocked \
+                "Installation interdite par la décision finale BLOCK."
+
+            report_finalize
+            exit 29
+            ;;
+
+        *)
+            logger_error \
+                "Décision finale invalide : ${DECISION_FINAL:-undefined}."
+
+            report_finalize
+            exit 30
+            ;;
+    esac
 }
 
 install_updates() {
@@ -326,6 +360,7 @@ main() {
 
     check_arch_news
     simulate_transaction
+    enforce_final_decision
     install_updates
     report_finalize
 }
