@@ -16,9 +16,11 @@ readonly DECISION_MODULE="${PROJECT_ROOT}/lib/decision.sh"
 readonly SYSTEM_CHECKS_MODULE="${PROJECT_ROOT}/lib/system_checks.sh"
 readonly REPORT_MODULE="${PROJECT_ROOT}/lib/report.sh"
 readonly ENGINE_MODULE="${PROJECT_ROOT}/lib/engine.sh"
+readonly ARCH_NEWS_CONTEXT_MODULE="${PROJECT_ROOT}/lib/arch_news_context.sh"
 readonly LOCK_FILE="/run/lock/smart-update.lock"
 readonly STATE_DIR="/var/lib/smart-update"
 readonly LAST_SUCCESS_FILE="${STATE_DIR}/last-success"
+readonly ARCH_NEWS_STATE_FILE="${STATE_DIR}/arch-news.last"
 
 if [[ ! -r "$CONFIG_MODULE" ]]; then
     printf 'Module de configuration absent : %s\n' "$CONFIG_MODULE" >&2
@@ -50,6 +52,12 @@ if [[ ! -r "$ENGINE_MODULE" ]]; then
     exit 1
 fi
 
+if [[ ! -r "$ARCH_NEWS_CONTEXT_MODULE" ]]; then
+    printf 'Module de contexte Arch News absent : %s\n' \
+        "$ARCH_NEWS_CONTEXT_MODULE" >&2
+    exit 1
+fi
+
 # shellcheck source=lib/config.sh
 source "${PROJECT_ROOT}/lib/config.sh"
 
@@ -67,6 +75,9 @@ source "${PROJECT_ROOT}/lib/report.sh"
 
 # shellcheck source=lib/engine.sh
 source "${PROJECT_ROOT}/lib/engine.sh"
+
+# shellcheck source=lib/arch_news_context.sh
+source "${PROJECT_ROOT}/lib/arch_news_context.sh"
 
 decision_reset
 
@@ -133,58 +144,44 @@ load_updates() {
         | tee -a "$LOG_FILE"
 }
 
-check_arch_news() {
-    [[ "$CHECK_ARCH_NEWS" == "yes" ]] || return 0
+prepare_arch_news_context() {
+    # Une erreur de préparation devient un contexte ERROR.
+    # La politique Arch News transformera ce statut en décision.
+    if ! arch_news_prepare \
+        "$CHECK_ARCH_NEWS" \
+        "$ARCH_NEWS_FEED_URL" \
+        "$ARCH_NEWS_LIMIT" \
+        "$ARCH_NEWS_STATE_FILE"; then
 
-    logger_info "Consultation des dernières annonces Arch Linux."
+        return 0
+    fi
+}
 
-    local news
-    news=$(
-        curl \
-            --fail \
-            --silent \
-            --show-error \
-            --max-time 20 \
-            "https://archlinux.org/feeds/news/" \
-            || true
-    )
+persist_arch_news_context() {
+    [[ "${ARCH_NEWS_CONTEXT_STATUS:-}" == "NEW" ]] \
+        || return 0
 
-    if [[ -z "$news" ]]; then
-        decision_add \
-            "BLOCK" \
-            "Impossible de consulter les annonces Arch Linux."
+    case "${DECISION_FINAL:-}" in
+        ALLOW | WARNING)
+            ;;
+        *)
+            return 0
+            ;;
+    esac
 
-        logger_blocked "${DECISION_REASONS[-1]}"
-        exit 24
+    if arch_news_state_save \
+        "$ARCH_NEWS_STATE_FILE" \
+        "$ARCH_NEWS_LATEST_GUID"; then
+
+        logger_info "État Arch News enregistré."
+        return 0
     fi
 
-    local recent_titles
-    recent_titles=$(
-        printf '%s\n' "$news" \
-            | grep -o '<title>[^<]*</title>' \
-            | sed -e 's/<title>//' -e 's#</title>##' \
-            | tail -n +2 \
-            | head -n "$ARCH_NEWS_LIMIT"
-    )
-
-    {
-        echo
-        echo "Dernières annonces Arch consultées :"
-        printf '%s\n' "$recent_titles"
-        echo
-    } >>"$LOG_FILE"
-
     decision_add \
-        "WARNING" \
-        "Les annonces ont été consignées dans le journal."
+        "BLOCK" \
+        "${ARCH_NEWS_STATE_ERROR:-Impossible d’enregistrer l’état Arch News.}"
 
-    logger_warning "${DECISION_REASONS[-1]}"
-
-    decision_add \
-        "WARNING" \
-        "La détection automatique ne remplace pas leur lecture humaine."
-
-    logger_warning "${DECISION_REASONS[-1]}"
+    logger_blocked "${DECISION_REASONS[-1]}"
 }
 
 simulate_transaction() {
@@ -354,12 +351,13 @@ main() {
     create_report
 
     load_updates
+    prepare_arch_news_context
 
     engine_load_policies
     engine_run_policies
 
-    check_arch_news
     simulate_transaction
+    persist_arch_news_context
     enforce_final_decision
     install_updates
     report_finalize
