@@ -2,282 +2,453 @@
 
 > **Think first. Update safely.**
 
-Smart Update v2 is not another wrapper around `pacman`.
+Smart Update v2 is a policy-driven update decision engine for Arch Linux.
 
-It is a policy-driven update decision engine for Arch Linux that evaluates every update before any package is installed.
+It does not blindly run `pacman -Syu`. It first inspects the system, simulates the update transaction, evaluates deterministic policies and produces a final decision:
 
-Rather than blindly executing `pacman -Syu`, Smart Update analyzes the system, evaluates potential risks, applies administrator-defined policies, and determines whether an update should be allowed, warned about or blocked.
+- `ALLOW`: the workflow may continue;
+- `WARNING`: the workflow may continue, but the administrator should review the reported risk;
+- `BLOCK`: package installation is forbidden.
 
-Every decision is deterministic, explainable and fully controlled by administrator-defined policies.
-
-The project is designed to provide a safer, more transparent and fully explainable update workflow while remaining fully compatible with the Arch Linux ecosystem and Pacman.
-
----
-
-## Why Smart Update?
-
-Keeping an Arch Linux system up to date is essential, but blindly executing `pacman -Syu` is not always the safest choice.
-
-Smart Update introduces a deterministic decision layer between the administrator and Pacman. Every update is evaluated before execution using administrator-defined policies that identify potential risks before the system is modified.
-
-Instead of simply installing packages, Smart Update explains every decision it makes, allowing administrators to understand exactly why an update is allowed, warned about or blocked.
-
----
-
-## Features
-
-- Policy-driven update decision engine
-- Configurable decision levels (`ALLOW`, `WARNING`, `BLOCK`)
-- Administrator-defined update policies
-- Critical package detection
-- Detection of new packages and dependencies
-- Audit mode for analysis without installation
-- Detailed execution reports with decision summaries
-- Structured logging
-- Modular Bash architecture
-- Automated test suite
-- ShellCheck and shfmt compliant
-
----
-
-## Project Architecture
-
-Smart Update is designed around a modular architecture where each component has a single responsibility.
-
-Instead of concentrating all functionality into a single script, the project separates the execution workflow, business logic, configuration, testing and system integration into dedicated modules. This organization improves maintainability, simplifies testing and makes the project easier to extend.
-
-### Core Components
-
-| Directory | Responsibility |
-|-----------|----------------|
-| `bin/` | Application entry point and update workflow |
-| `lib/` | Decision engine, policies, logging and reporting modules |
-| `config/` | Default configuration files |
-| `tests/` | Automated regression and unit tests |
-| `systemd/` | Service and timer units for scheduled execution |
-
-This architecture allows new policies and features to be added with minimal impact on the existing codebase while keeping the update workflow predictable and easy to understand.
-
----
-
-## Project Structure
-
-```text
-smart-update-v2/
-├── bin/            # Application entry point
-├── config/         # Configuration files and policies
-├── docs/           # Project documentation
-├── lib/            # Core modules
-├── scripts/        # Development and maintenance scripts
-├── systemd/        # Service and timer units
-├── tests/          # Automated test suite
-├── PROGRESS.md     # Development progress tracking
-└── README.md       # Project documentation
-```
-
-### Directory Overview
-
-| Directory | Purpose |
-|-----------|---------|
-| `bin/` | Contains the main executable that orchestrates the update workflow. |
-| `config/` | Stores configuration files and policy definitions used by the decision engine. |
-| `docs/` | Contains architecture, development, user and vision documentation. |
-| `lib/` | Implements the project's core logic, including policies, decisions, logging, reporting and system checks. |
-| `scripts/` | Reserved for development and maintenance utilities. |
-| `systemd/` | Provides service and timer units for scheduled execution. |
-| `tests/` | Contains the automated regression and unit test suite. |
-| `PROGRESS.md` | Tracks completed work, milestones and upcoming tasks. |
-
-This directory layout keeps the project modular and scalable while clearly separating execution, configuration, documentation, testing and core business logic.
-
----
-
-## Requirements
-
-Smart Update is currently developed and tested exclusively on **Arch Linux**.
-
-### Software Requirements
-
-| Component | Requirement |
-|-----------|-------------|
-| Operating System | Arch Linux |
-| Bash | Version 5.2 or later |
-| pacman | Native Arch Linux package manager |
-| systemd | Required for scheduled execution |
-| Git | Required to clone the repository |
-
-### Permissions
-
-Smart Update performs system maintenance and package management operations. As a result, it must be executed with **root privileges** or through `sudo`.
-
-### Tested Environment
-
-| Component | Status |
-|-----------|--------|
-| Arch Linux | ✅ Supported |
-| Arch-based distributions (Manjaro, EndeavourOS, CachyOS, etc.) | ⚠️ Not officially tested |
-| Other Linux distributions | ❌ Not supported |
-
-> **Note**
->
-> Smart Update relies on Arch Linux's native package management tools and system architecture. Compatibility with Arch-based distributions may be evaluated in future releases.
-
----
-
-## Future Vision
-
-Smart Update is designed to remain a deterministic, policy-driven update decision engine.
-
-In the long term, the project aims to introduce an **optional AI advisor** capable of assisting system administrators while preserving the deterministic behavior of the policy engine.
-
-The guiding principle of this evolution is:
+The project follows one core principle:
 
 > **The AI advises. Policies decide. The administrator remains in control.**
 
-Potential future capabilities include:
+---
 
-- AI-assisted update risk analysis
-- Human-readable explanations for policy decisions
-- Intelligent update summaries
-- Configuration assistance
-- Log and report analysis
-- Interactive troubleshooting
-- Historical execution analysis and recommendations
+## What Smart Update does
 
-The AI advisor will never replace the policy engine or make update decisions autonomously. It will consume the structured output of Smart Update and provide explanations and recommendations only.
+A normal Arch Linux update usually starts directly with:
 
-AI integration will remain **optional**, allowing Smart Update to operate entirely offline and without external services when desired.
+```bash
+sudo pacman -Syu
+```
+
+Smart Update adds a decision layer before installation:
+
+```text
+Detect updates
+→ collect system information
+→ prepare policy context
+→ execute policies
+→ simulate the Pacman transaction
+→ enforce the final decision
+→ install only when allowed
+→ finalize the report
+```
+
+A `BLOCK` decision is always enforced before installation. The program cannot continue to `pacman -Syu` when the final decision is blocking.
 
 ---
 
-## Installation
+## Current features
 
-### Clone the Repository
+- Modular Bash architecture
+- Dynamic policy loading
+- Deterministic decisions: `ALLOW`, `WARNING`, `BLOCK`
+- Final blocking-decision enforcement before installation
+- Update-count policy
+- Critical-package detection
+- Foreign/AUR package reporting
+- Detection of newly introduced packages or dependencies
+- Persistent Arch Linux news tracking
+- Audit mode without package installation
+- Guarded mode for policy-controlled installation
+- Structured logs
+- Detailed execution reports
+- Atomic state-file writes
+- Automated regression and unit tests
+- ShellCheck and shfmt compliance
+
+---
+
+## Quick start
+
+Clone the repository:
 
 ```bash
 git clone git@github.com:Alyk976/smart-update-v2.git
 cd smart-update-v2
 ```
 
-### Verify Your Environment
-
-Smart Update currently targets **Arch Linux** and requires the following tools:
-
-```bash
-bash --version
-pacman --version
-systemctl --version
-```
-
-### Ready to Go
-
-Smart Update is currently designed to run directly from the repository.
-
-No installation script or package is required during development.
-
-Once the repository has been cloned and the requirements are met, you can proceed with the project configuration.
-
-> **Note**
->
-> Installation packages and automated deployment methods may be introduced in future releases.
-
----
-
-## Configuration
-
-Smart Update is configured through:
-
-```text
-config/smart-update.conf
-```
-
-The default configuration uses **audit mode**, which analyzes the update transaction without installing packages.
-
-### Operating Mode
-
-| Value | Behavior |
-|-------|----------|
-| `audit` | Analyze the system and produce a decision without installing updates. |
-| `guarded` | Allow automatic installation only when no blocking risk is detected. |
-
-```bash
-MODE="audit"
-```
-
-### Safety Policies
-
-| Setting | Default | Purpose |
-|---------|---------|---------|
-| `ALLOW_AUR` | `no` | Restricts updates to official repositories. |
-| `ALLOW_REMOVALS` | `no` | Blocks transactions that remove installed packages. |
-| `ALLOW_NEW_DEPENDENCIES` | `no` | Blocks automatically introduced dependencies. |
-| `ALLOW_REPLACEMENTS` | `no` | Blocks package replacements. |
-| `ALLOW_OVERWRITE` | `no` | Prevents the use of Pacman's `--overwrite` option. |
-| `MAX_UPDATE_COUNT` | `500` | Limits the number of packages in one transaction. |
-| `MIN_ROOT_FREE_MIB` | `4096` | Requires at least 4096 MiB of free space on `/`. |
-
-### Arch News and Automation
-
-| Setting | Default | Purpose |
-|---------|---------|---------|
-| `CHECK_ARCH_NEWS` | `yes` | Enables inspection of recent Arch Linux announcements. |
-| `ARCH_NEWS_LIMIT` | `10` | Defines how many recent announcements are examined. |
-| `AUTO_REBOOT` | `no` | Prevents automatic system reboots. |
-| `AUTO_SNAPSHOT` | `no` | Prevents automatic snapshot creation. |
-
-### Logs and Reports
-
-| Setting | Default |
-|---------|---------|
-| `REPORT_RETENTION_DAYS` | `90` |
-| `LOG_FILE` | `/var/log/smart-update/smart-update.log` |
-| `BLOCKED_LOG` | `/var/log/smart-update/blocked.log` |
-| `REPORT_DIR` | `/var/log/smart-update/reports` |
-
-Review each setting before enabling `guarded` mode. The configuration file is sourced as Bash, so values must preserve the expected syntax and quoting.
-
----
-
-## Quick Start
-
-The example below performs a complete system analysis without installing any packages.
+Run Smart Update:
 
 ```bash
 sudo ./bin/smart-update
 ```
 
-During execution, Smart Update inspects the current system, evaluates every configured policy and determines whether the update transaction should be allowed, warned about or blocked.
+The default configuration uses audit mode, so the program analyzes the update without installing packages.
 
-### Decision Levels
+Run the automated tests:
 
-| Decision | Description |
-|-----------|-------------|
-| `ALLOW` | The transaction satisfies every configured policy and may proceed safely. |
-| `WARNING` | The transaction is allowed but requires administrator review before continuing. |
-| `BLOCK` | One or more configured policies prevent the transaction from being executed. |
-
-### Generated Output
-
-Each execution produces:
-
-- A detailed execution report
-- Structured log files
-- A summary of every evaluated policy
-- A final decision with a complete explanation
-
-Rather than simply executing `pacman -Syu`, Smart Update explains **why** an update is considered safe, risky or blocked.
-
-> **The objective is not to automate package installation.**
->
-> **The objective is to automate update decisions.**
+```bash
+./tests/run_tests.sh
+```
 
 ---
 
-## Project Status
+## Operating modes
 
-Current version: **v0.2-dev**
+Smart Update is configured in:
 
-This project is under active development.
+```text
+config/smart-update.conf
+```
+
+### Audit mode
+
+```bash
+MODE="audit"
+```
+
+Audit mode performs the checks, executes the policies, simulates the transaction and generates the logs and report.
+
+It does **not** install packages.
+
+### Guarded mode
+
+```bash
+MODE="guarded"
+```
+
+Guarded mode may install updates, but only when the final decision is not `BLOCK`.
+
+Before enabling guarded mode, review the configuration, logs and reports produced in audit mode.
+
+---
+
+## Decision levels
+
+| Decision | Meaning | Installation |
+|----------|---------|--------------|
+| `ALLOW` | No blocking risk was detected | Allowed in guarded mode |
+| `WARNING` | A risk or manual review item was detected | Allowed in guarded mode |
+| `BLOCK` | At least one policy refuses the transaction | Forbidden |
+
+A warning is informative but does not automatically block the transaction.
+
+A block is imperative and is enforced immediately before installation.
+
+---
+
+## Arch Linux news tracking
+
+Arch Linux sometimes publishes announcements that require manual intervention before an update. Smart Update reads the official Arch Linux RSS feed and exposes new announcements to the policy engine.
+
+Enable the feature with:
+
+```bash
+CHECK_ARCH_NEWS="yes"
+ARCH_NEWS_LIMIT=10
+```
+
+`ARCH_NEWS_LIMIT` is the maximum number of recent announcements collected from the feed.
+
+### Simple behavior
+
+#### First execution
+
+When no previous state exists:
+
+```text
+Feed collected
+→ all collected announcements are considered new
+→ Arch News policy returns WARNING
+→ newest GUID is saved when no blocking decision exists
+```
+
+#### Following executions
+
+Smart Update compares the collected announcements with the last saved GUID:
+
+```text
+No announcement before the saved GUID
+→ no new announcement
+→ Arch News policy returns ALLOW
+→ state file is not rewritten
+```
+
+When newer announcements exist:
+
+```text
+New announcements found
+→ Arch News policy returns WARNING
+→ announcement details are written to the log
+→ newest GUID is saved when the workflow is not blocked
+```
+
+### Persistent state
+
+The last processed announcement is stored in:
+
+```text
+/var/lib/smart-update/arch-news.last
+```
+
+The file contains one GUID and is written atomically with permissions `0640`.
+
+Smart Update does not rewrite this file when no new announcement exists.
+
+### Error behavior
+
+The Arch News policy returns `BLOCK` when:
+
+- the RSS feed cannot be downloaded;
+- the feed cannot be parsed;
+- the state file is invalid or unreadable;
+- the saved GUID is absent from the collected feed;
+- the new state cannot be saved safely.
+
+When a blocking error occurs, the stored GUID is not advanced.
+
+### Policy results
+
+| Situation | Result | State behavior |
+|-----------|--------|----------------|
+| Arch News disabled | `ALLOW` | No collection or state update |
+| First execution | `WARNING` | Newest GUID saved if workflow is not blocked |
+| New announcements | `WARNING` | Newest GUID saved if workflow is not blocked |
+| No new announcement | `ALLOW` | State file remains unchanged |
+| Collection, parsing or state error | `BLOCK` | State is not advanced |
+
+### Important distinction
+
+Arch News does not decide whether a specific installed package is affected by an announcement. It guarantees that new official announcements are surfaced to the administrator before installation is allowed.
+
+The administrator remains responsible for reading relevant announcements and applying any required manual intervention.
+
+---
+
+## Policies currently available
+
+Policies are loaded dynamically from:
+
+```text
+lib/policies/
+```
+
+Current policies include:
+
+| Policy | Purpose |
+|--------|---------|
+| Update count | Checks that the number of updates stays within the configured limit |
+| Critical updates | Detects updates affecting critical packages |
+| Foreign packages | Reports installed foreign/AUR packages |
+| Arch News | Reports new official Arch Linux announcements |
+
+Every policy returns the same contract:
+
+```text
+POLICY_NAME
+POLICY_RESULT
+POLICY_REASON
+POLICY_DETAILS
+```
+
+Policies do not install packages, write reports or terminate the program. The engine processes their results centrally.
+
+---
+
+## New dependencies
+
+Smart Update simulates the Pacman transaction and compares planned packages with currently installed packages.
+
+When new packages or dependencies are detected:
+
+- `ALLOW_NEW_DEPENDENCIES="yes"` produces a `WARNING`;
+- `ALLOW_NEW_DEPENDENCIES="no"` produces a `BLOCK`.
+
+A blocking result prevents installation in guarded mode.
+
+---
+
+## Configuration reference
+
+### Active settings
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `MODE` | `audit` | Selects audit or guarded mode |
+| `ALLOW_AUR` | `no` | Keeps Smart Update focused on official repository updates |
+| `ALLOW_NEW_DEPENDENCIES` | `no` | Controls newly introduced packages or dependencies |
+| `MAX_UPDATE_COUNT` | `500` | Limits the number of updates in one run |
+| `MIN_ROOT_FREE_MIB` | `4096` | Requires minimum free space on `/` |
+| `CHECK_ARCH_NEWS` | `yes` | Enables official Arch Linux news tracking |
+| `ARCH_NEWS_LIMIT` | `10` | Limits collected news announcements |
+| `REPORT_RETENTION_DAYS` | `90` | Controls report retention |
+| `LOG_FILE` | `/var/log/smart-update/smart-update.log` | Main log file |
+| `BLOCKED_LOG` | `/var/log/smart-update/blocked.log` | Blocking-event log |
+| `REPORT_DIR` | `/var/log/smart-update/reports` | Report directory |
+
+### Reserved safety settings
+
+The configuration also contains the following safety settings:
+
+```bash
+ALLOW_REMOVALS="no"
+ALLOW_REPLACEMENTS="no"
+ALLOW_OVERWRITE="no"
+AUTO_REBOOT="no"
+AUTO_SNAPSHOT="no"
+```
+
+These values express the intended safety contract. Removal, replacement and overwrite transaction policies are still planned and must not yet be considered fully enforced by the current version.
+
+Smart Update never performs an automatic reboot or snapshot in the current version.
+
+---
+
+## Logs, reports and state
+
+### Main log
+
+```text
+/var/log/smart-update/smart-update.log
+```
+
+### Blocking log
+
+```text
+/var/log/smart-update/blocked.log
+```
+
+### Reports
+
+```text
+/var/log/smart-update/reports/
+```
+
+Each report includes:
+
+- detected updates;
+- policy decisions;
+- decision reasons;
+- critical updates;
+- new dependencies;
+- foreign/AUR packages;
+- final verdict;
+- execution duration.
+
+### State directory
+
+```text
+/var/lib/smart-update/
+```
+
+Current state files include:
+
+```text
+last-success
+arch-news.last
+```
+
+---
+
+## Project architecture
+
+```text
+smart-update-v2/
+├── bin/                    # Main application workflow
+├── config/                 # Default configuration
+├── docs/                   # Architecture and project documentation
+├── lib/                    # Core modules
+│   ├── policies/           # Deterministic policies
+│   ├── arch_news.sh        # RSS collector
+│   ├── arch_news_state.sh  # Persistent news state
+│   ├── arch_news_context.sh# News preparation context
+│   ├── config.sh           # Configuration validation
+│   ├── decision.sh         # Final decision aggregation
+│   ├── engine.sh           # Policy execution engine
+│   ├── logger.sh           # Structured logging
+│   ├── report.sh           # Report generation
+│   └── system_checks.sh    # System prerequisites
+├── scripts/                # Development utilities
+├── systemd/                # Service and timer units
+├── tests/                  # Automated tests
+├── PROGRESS.md             # Project progress
+└── README.md               # Main documentation
+```
+
+The main workflow stays in `bin/smart-update`. Reusable technical logic belongs in `lib/`, while policies remain isolated in `lib/policies/`.
+
+---
+
+## Requirements
+
+| Component | Requirement |
+|-----------|-------------|
+| Operating system | Arch Linux |
+| Bash | 5.2 or later |
+| pacman | Native Arch Linux package manager |
+| pacman-contrib | Provides `checkupdates` |
+| libxml2 | Provides `xmllint` when Arch News is enabled |
+| systemd | Required for scheduled execution |
+| Git | Required to clone the repository |
+
+Smart Update must be executed with root privileges:
+
+```bash
+sudo ./bin/smart-update
+```
+
+### Supported systems
+
+| System | Status |
+|--------|--------|
+| Arch Linux | Supported |
+| Arch-based distributions | Not officially tested |
+| Other Linux distributions | Not supported |
+
+---
+
+## Development workflow
+
+The project follows a strict development discipline:
+
+1. define one logical objective;
+2. define the architecture and contract;
+3. implement the code;
+4. run formatting, syntax checks, ShellCheck and tests;
+5. create one focused commit;
+6. document the next step.
+
+Validation commands commonly used during development:
+
+```bash
+shfmt -w -i 4 -ci -bn <files>
+bash -n <files>
+shellcheck -x <files>
+./tests/run_tests.sh
+git diff --check
+```
+
+---
+
+## Current status
+
+Current development version: **v0.2-dev**
+
+The following parts are operational and functionally tested:
+
+- modular policy engine;
+- deterministic decision aggregation;
+- final `BLOCK` enforcement;
+- Arch News collection, state tracking and policy workflow;
+- first-run and subsequent-run Arch News behavior;
+- audit-mode execution without installation;
+- report and log generation.
+
+The next planned transaction-safety work concerns package removals, replacements and forbidden overwrite behavior.
+
+---
+
+## Future vision
+
+Smart Update is designed to remain deterministic and policy-driven.
+
+A future optional AI advisor may provide explanations, summaries and troubleshooting assistance, but it will never replace the policy engine or autonomously approve an update.
+
+> **The AI advises. Policies decide. The administrator remains in control.**
 
 ---
 
