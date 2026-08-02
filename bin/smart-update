@@ -17,6 +17,8 @@ readonly SYSTEM_CHECKS_MODULE="${PROJECT_ROOT}/lib/system_checks.sh"
 readonly REPORT_MODULE="${PROJECT_ROOT}/lib/report.sh"
 readonly ENGINE_MODULE="${PROJECT_ROOT}/lib/engine.sh"
 readonly LOCK_FILE="/run/lock/smart-update.lock"
+readonly STATE_DIR="/var/lib/smart-update"
+readonly LAST_SUCCESS_FILE="${STATE_DIR}/last-success"
 
 if [[ ! -r "$CONFIG_MODULE" ]]; then
     printf 'Module de configuration absent : %s\n' "$CONFIG_MODULE" >&2
@@ -70,6 +72,7 @@ decision_reset
 
 config_load "$CONFIG_FILE"
 
+install -d -m 0750 "$STATE_DIR"
 mkdir -p "$REPORT_DIR"
 touch "$LOG_FILE" "$BLOCKED_LOG"
 chmod 640 "$LOG_FILE" "$BLOCKED_LOG"
@@ -301,8 +304,8 @@ install_updates() {
         exit 26
     fi
 
-    date --iso-8601=seconds >/var/lib/smart-update/last-success
-    chmod 640 /var/lib/smart-update/last-success
+    date --iso-8601=seconds >"$LAST_SUCCESS_FILE"
+    chmod 640 "$LAST_SUCCESS_FILE"
 
     logger_info "Mise à jour terminée avec succès."
 }
