@@ -87,7 +87,6 @@ trap 'logger_error "Erreur ligne ${LINENO} : ${BASH_COMMAND}"' ERR
 declare -a UPDATE_LINES=()
 declare -a UPDATE_PACKAGES=()
 declare -a CRITICAL_UPDATES=()
-declare -a FOREIGN_PACKAGES=()
 
 load_updates() {
     local output
@@ -128,25 +127,6 @@ load_updates() {
     logger_info "${#UPDATE_PACKAGES[@]} mise(s) à jour détectée(s)."
 
     printf '%s\n' "${UPDATE_LINES[@]}" \
-        | tee -a "$LOG_FILE"
-}
-
-check_foreign_packages() {
-    mapfile -t FOREIGN_PACKAGES < <(pacman -Qqm 2>/dev/null || true)
-
-    if ((${#FOREIGN_PACKAGES[@]} == 0)); then
-        logger_info "Aucun paquet étranger ou AUR installé."
-        return 0
-    fi
-
-    decision_add \
-        "WARNING" \
-        "${#FOREIGN_PACKAGES[@]} paquet(s) étranger(s)/AUR détecté(s). Ils ne seront ni installés ni mis à jour par Smart Update."
-
-    logger_warning "${DECISION_REASONS[-1]}"
-
-    printf '%s\n' "${FOREIGN_PACKAGES[@]}" \
-        | sed 's/^/AUR : /' \
         | tee -a "$LOG_FILE"
 }
 
@@ -341,7 +321,6 @@ main() {
     engine_load_policies
     engine_run_policies
 
-    check_foreign_packages
     check_arch_news
     simulate_transaction
     install_updates
