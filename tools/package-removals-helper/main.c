@@ -121,6 +121,40 @@ static void answer_question(void *context, alpm_question_t *question)
     }
 }
 
+static int print_package_removals(alpm_handle_t *handle)
+{
+    for (const alpm_list_t *item = alpm_trans_get_remove(handle);
+         item != NULL;
+         item = item->next) {
+        const alpm_pkg_t *package = item->data;
+
+        if (package == NULL) {
+            fprintf(
+                stderr,
+                "package-removals-helper: invalid package in removal list\n"
+            );
+            return -1;
+        }
+
+        const char *name = alpm_pkg_get_name(package);
+
+        if (name == NULL || *name == '\0') {
+            fprintf(
+                stderr,
+                "package-removals-helper: package without a valid name\n"
+            );
+            return -1;
+        }
+
+        if (printf("%s\n", name) < 0) {
+            fprintf(stderr, "package-removals-helper: stdout write failed\n");
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 int main(void)
 {
     int result = EXIT_FAILURE;
@@ -185,8 +219,9 @@ int main(void)
         goto cleanup;
     }
 
-    printf("add=%zu\n", alpm_list_count(alpm_trans_get_add(handle)));
-    printf("remove=%zu\n", alpm_list_count(alpm_trans_get_remove(handle)));
+    if (print_package_removals(handle) != 0) {
+        goto cleanup;
+    }
 
     result = EXIT_SUCCESS;
 
