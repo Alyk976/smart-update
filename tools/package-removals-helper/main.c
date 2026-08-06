@@ -32,6 +32,11 @@ int main(void)
         return EXIT_FAILURE;
     }
 
+    const alpm_list_t *package_cache = alpm_db_get_pkgcache(local_db);
+    const size_t package_count = alpm_list_count(package_cache);
+
+    printf("%zu\n", package_count);
+
     if (alpm_release(handle) != 0) {
         fprintf(stderr, "package-removals-helper: alpm_release failed\n");
         return EXIT_FAILURE;
