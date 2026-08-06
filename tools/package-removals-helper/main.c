@@ -126,7 +126,7 @@ static int print_package_removals(alpm_handle_t *handle)
     for (const alpm_list_t *item = alpm_trans_get_remove(handle);
          item != NULL;
          item = item->next) {
-        const alpm_pkg_t *package = item->data;
+        alpm_pkg_t *package = item->data;
 
         if (package == NULL) {
             fprintf(
