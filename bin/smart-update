@@ -17,6 +17,8 @@ readonly SYSTEM_CHECKS_MODULE="${PROJECT_ROOT}/lib/system_checks.sh"
 readonly REPORT_MODULE="${PROJECT_ROOT}/lib/report.sh"
 readonly ENGINE_MODULE="${PROJECT_ROOT}/lib/engine.sh"
 readonly ARCH_NEWS_CONTEXT_MODULE="${PROJECT_ROOT}/lib/arch_news_context.sh"
+readonly PACKAGE_REMOVALS_MODULE="${PROJECT_ROOT}/lib/package_removals.sh"
+readonly PACKAGE_REMOVALS_HELPER="${PROJECT_ROOT}/tools/package-removals-helper/package-removals-helper"
 readonly LOCK_FILE="/run/lock/smart-update.lock"
 readonly STATE_DIR="/var/lib/smart-update"
 readonly LAST_SUCCESS_FILE="${STATE_DIR}/last-success"
@@ -58,6 +60,12 @@ if [[ ! -r "$ARCH_NEWS_CONTEXT_MODULE" ]]; then
     exit 1
 fi
 
+if [[ ! -r "$PACKAGE_REMOVALS_MODULE" ]]; then
+    printf 'Module de collecte des suppressions absent : %s\n' \
+        "$PACKAGE_REMOVALS_MODULE" >&2
+    exit 1
+fi
+
 # shellcheck source=lib/config.sh
 source "${PROJECT_ROOT}/lib/config.sh"
 
@@ -78,6 +86,9 @@ source "${PROJECT_ROOT}/lib/engine.sh"
 
 # shellcheck source=lib/arch_news_context.sh
 source "${PROJECT_ROOT}/lib/arch_news_context.sh"
+
+# shellcheck source=lib/package_removals.sh
+source "${PROJECT_ROOT}/lib/package_removals.sh"
 
 decision_reset
 
@@ -157,6 +168,18 @@ prepare_arch_news_context() {
     fi
 }
 
+prepare_package_removals_context() {
+    logger_info "Analyse des suppressions prévues par la transaction."
+
+    # Une erreur du collecteur est conservée dans PACKAGE_REMOVALS_ERROR.
+    # La politique package_removals la transformera en décision BLOCK.
+    if ! package_removals_collect "$PACKAGE_REMOVALS_HELPER"; then
+        return 0
+    fi
+
+    logger_info "${#PACKAGE_REMOVALS[@]} suppression(s) prévue(s) par libalpm."
+}
+
 persist_arch_news_context() {
     [[ "${ARCH_NEWS_CONTEXT_STATUS:-}" == "NEW" ]] \
         || return 0
@@ -213,16 +236,14 @@ simulate_transaction() {
 
         logger_blocked "${DECISION_REASONS[-1]}"
 
-        printf '%s
-' "$simulation" \
+        printf '%s\n' "$simulation" \
             | tee -a "$LOG_FILE" "$BLOCKED_LOG"
 
         rm -f "$planned_file" "$installed_file" "$new_packages_file"
         exit 25
     fi
 
-    printf '%s
-' "$simulation" \
+    printf '%s\n' "$simulation" \
         | awk 'NF == 3 && $1 ~ /^[a-zA-Z0-9@._+:-]+$/ {print $1}' \
         | sort -u >"$planned_file"
 
@@ -234,8 +255,7 @@ simulate_transaction() {
     {
         echo
         echo "Simulation de transaction :"
-        printf '%s
-' "$simulation"
+        printf '%s\n' "$simulation"
         echo
     } >>"$LOG_FILE"
 
@@ -352,6 +372,7 @@ main() {
 
     load_updates
     prepare_arch_news_context
+    prepare_package_removals_context
 
     engine_load_policies
     engine_run_policies
