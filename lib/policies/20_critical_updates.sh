@@ -6,7 +6,7 @@ policy_run() {
     POLICY_DETAILS=()
     CRITICAL_UPDATES=()
 
-    local critical_file="${PROJECT_ROOT}/config/critical-packages.conf"
+    local critical_file="${CONFIG_DIR:-${PROJECT_ROOT}/config}/critical-packages.conf"
 
     if [[ ! -r "$critical_file" ]]; then
         POLICY_RESULT="BLOCK"
