@@ -57,6 +57,9 @@ assert_same_file() {
 }
 
 assert_file /usr/bin/smart-update
+assert_file /usr/lib/smart-update/arch_news.sh
+assert_file /usr/lib/smart-update/arch_news_context.sh
+assert_file /usr/lib/smart-update/arch_news_state.sh
 assert_file /usr/lib/smart-update/config.sh
 assert_file /usr/lib/smart-update/engine.sh
 assert_file /usr/lib/smart-update/package-removals-helper
@@ -75,6 +78,9 @@ assert_dir /var/log/smart-update/reports
 # Permissions des exécutables, modules, policies et données sensibles.
 assert_mode /usr/bin/smart-update 755
 assert_mode /usr/lib/smart-update 755
+assert_mode /usr/lib/smart-update/arch_news.sh 644
+assert_mode /usr/lib/smart-update/arch_news_context.sh 644
+assert_mode /usr/lib/smart-update/arch_news_state.sh 644
 assert_mode /usr/lib/smart-update/config.sh 644
 assert_mode /usr/lib/smart-update/engine.sh 644
 assert_mode /usr/lib/smart-update/policies 755
@@ -90,6 +96,9 @@ assert_mode /var/log/smart-update/reports 750
 
 # Les fichiers installés doivent correspondre exactement aux sources livrées.
 assert_same_file bin/smart-update /usr/bin/smart-update
+assert_same_file lib/arch_news.sh /usr/lib/smart-update/arch_news.sh
+assert_same_file lib/arch_news_context.sh /usr/lib/smart-update/arch_news_context.sh
+assert_same_file lib/arch_news_state.sh /usr/lib/smart-update/arch_news_state.sh
 assert_same_file lib/config.sh /usr/lib/smart-update/config.sh
 assert_same_file lib/engine.sh /usr/lib/smart-update/engine.sh
 assert_same_file lib/policies/10_update_count.sh \
