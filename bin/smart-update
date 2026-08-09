@@ -18,6 +18,7 @@ readonly REPORT_MODULE="${PROJECT_ROOT}/lib/report.sh"
 readonly ENGINE_MODULE="${PROJECT_ROOT}/lib/engine.sh"
 readonly ARCH_NEWS_CONTEXT_MODULE="${PROJECT_ROOT}/lib/arch_news_context.sh"
 readonly PACKAGE_REMOVALS_MODULE="${PROJECT_ROOT}/lib/package_removals.sh"
+readonly PACKAGE_REPLACEMENTS_MODULE="${PROJECT_ROOT}/lib/package_replacements.sh"
 readonly PACKAGE_REMOVALS_HELPER="${PROJECT_ROOT}/tools/package-removals-helper/package-removals-helper"
 readonly LOCK_FILE="/run/lock/smart-update.lock"
 readonly STATE_DIR="/var/lib/smart-update"
@@ -66,6 +67,12 @@ if [[ ! -r "$PACKAGE_REMOVALS_MODULE" ]]; then
     exit 1
 fi
 
+if [[ ! -r "$PACKAGE_REPLACEMENTS_MODULE" ]]; then
+    printf 'Module de collecte des remplacements absent : %s\n' \
+        "$PACKAGE_REPLACEMENTS_MODULE" >&2
+    exit 1
+fi
+
 # shellcheck source=lib/config.sh
 source "${PROJECT_ROOT}/lib/config.sh"
 
@@ -89,6 +96,9 @@ source "${PROJECT_ROOT}/lib/arch_news_context.sh"
 
 # shellcheck source=lib/package_removals.sh
 source "${PROJECT_ROOT}/lib/package_removals.sh"
+
+# shellcheck source=lib/package_replacements.sh
+source "${PROJECT_ROOT}/lib/package_replacements.sh"
 
 decision_reset
 
@@ -178,6 +188,18 @@ prepare_package_removals_context() {
     fi
 
     logger_info "${#PACKAGE_REMOVALS[@]} suppression(s) prévue(s) par libalpm."
+}
+
+prepare_package_replacements_context() {
+    logger_info "Analyse des remplacements prévus par la transaction."
+
+    # Une erreur du collecteur est conservée dans PACKAGE_REPLACEMENTS_ERROR.
+    # La politique package_replacements la transformera en décision BLOCK.
+    if ! package_replacements_collect "$PACKAGE_REMOVALS_HELPER"; then
+        return 0
+    fi
+
+    logger_info "${#PACKAGE_REPLACEMENTS[@]} remplacement(s) prévu(s) par libalpm."
 }
 
 persist_arch_news_context() {
@@ -373,6 +395,7 @@ main() {
     load_updates
     prepare_arch_news_context
     prepare_package_removals_context
+    prepare_package_replacements_context
 
     engine_load_policies
     engine_run_policies
