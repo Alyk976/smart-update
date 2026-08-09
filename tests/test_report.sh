@@ -48,12 +48,14 @@ pacman() {
     esac
 }
 
+# shellcheck source=lib/exit_codes.sh
+source "./lib/exit_codes.sh"
 # shellcheck source=lib/report.sh
 source "./lib/report.sh"
 
 : >"$REPORT_FILE"
 
-report_finalize
+report_finalize "$EXIT_POLICY_BLOCK"
 
 grep -Fq "Décision finale" "$REPORT_FILE"
 grep -Fq "BLOCK" "$REPORT_FILE"
@@ -67,6 +69,8 @@ grep -Fq "Paquets critiques       : 2" "$REPORT_FILE"
 grep -Fq "Nouvelles dépendances   : 1" "$REPORT_FILE"
 grep -Fq "Paquets étrangers/AUR   : 2" "$REPORT_FILE"
 grep -Fq "Verdict                  : BLOCK" "$REPORT_FILE"
+grep -Fq "Code de sortie           : 29 (POLICY_BLOCK)" "$REPORT_FILE"
+grep -Fq "Statut                    : Installation bloquée volontairement par les politiques de sécurité." "$REPORT_FILE"
 grep -Eq 'Durée[[:space:]]+: 00:00:0[4-9]' "$REPORT_FILE"
 grep -Fq "Fin du rapport :" "$REPORT_FILE"
 
