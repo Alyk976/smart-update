@@ -55,7 +55,7 @@ declare -a workflow_lines=(
     "    persist_arch_news_context"
     "    enforce_final_decision"
     "    install_updates"
-    "    report_finalize"
+    '    report_finalize "$EXIT_OK"'
 )
 
 declare -a workflow_positions=()
