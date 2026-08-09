@@ -56,6 +56,7 @@ source "./lib/report.sh"
 : >"$REPORT_FILE"
 
 report_finalize "$EXIT_POLICY_BLOCK"
+report_finalize "$EXIT_POLICY_BLOCK"
 
 grep -Fq "Décision finale" "$REPORT_FILE"
 grep -Fq "BLOCK" "$REPORT_FILE"
@@ -73,5 +74,9 @@ grep -Fq "Code de sortie           : 29 (POLICY_BLOCK)" "$REPORT_FILE"
 grep -Fq "Statut                    : Installation bloquée volontairement par les politiques de sécurité." "$REPORT_FILE"
 grep -Eq 'Durée[[:space:]]+: 00:00:0[4-9]' "$REPORT_FILE"
 grep -Fq "Fin du rapport :" "$REPORT_FILE"
+
+final_count=$(grep -F -c "Fin du rapport :" "$REPORT_FILE")
+[[ "$final_count" -eq 1 ]]
+[[ "$REPORT_FINALIZED" == "yes" ]]
 
 printf 'Tous les tests du module report ont réussi.\n'
