@@ -14,7 +14,9 @@ HELPER_DIR := tools/package-removals-helper
 HELPER := $(HELPER_DIR)/package-removals-helper
 
 LIB_MODULES := \
+	lib/arch_news.sh \
 	lib/arch_news_context.sh \
+	lib/arch_news_state.sh \
 	lib/config.sh \
 	lib/decision.sh \
 	lib/engine.sh \
