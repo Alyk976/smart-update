@@ -41,7 +41,7 @@ assert_exact_line '    simulate_transaction'
 assert_exact_line '    persist_arch_news_context'
 assert_exact_line '    enforce_final_decision'
 assert_exact_line '    install_updates'
-assert_exact_line '    report_finalize'
+assert_exact_line '    report_finalize "$EXIT_OK"'
 
 load_line=$(line_number '    load_updates')
 arch_news_line=$(line_number '    prepare_arch_news_context')
@@ -54,7 +54,7 @@ simulation_line=$(line_number '    simulate_transaction')
 persist_line=$(line_number '    persist_arch_news_context')
 gate_line=$(line_number '    enforce_final_decision')
 install_line=$(line_number '    install_updates')
-report_line=$(line_number '    report_finalize')
+report_line=$(line_number '    report_finalize "$EXIT_OK"')
 
 previous=0
 for current in \
