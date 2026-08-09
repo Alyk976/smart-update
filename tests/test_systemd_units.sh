@@ -35,10 +35,15 @@ assert_line "$SERVICE" 'UMask=0027'
 assert_line "$SERVICE" 'Wants=network-online.target'
 assert_line "$SERVICE" 'After=network-online.target'
 
-assert_line "$TIMER" 'OnBootSec=5min'
+assert_line "$TIMER" 'OnActiveSec=5min'
 assert_line "$TIMER" 'OnUnitActiveSec=1d'
 assert_line "$TIMER" 'Persistent=true'
 assert_line "$TIMER" 'WantedBy=timers.target'
+
+if grep -F -x -q -- 'OnBootSec=5min' "$TIMER"; then
+    printf 'Erreur : le timer ne doit plus dépendre de OnBootSec=5min.\n' >&2
+    exit 1
+fi
 
 if command -v systemd-analyze >/dev/null 2>&1; then
     systemd-analyze verify "$SERVICE" "$TIMER" >/dev/null
