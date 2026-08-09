@@ -2,7 +2,7 @@
 Description=Run Smart Update
 
 [Timer]
-OnBootSec=5min
+OnActiveSec=5min
 OnUnitActiveSec=1d
 Persistent=true
 
