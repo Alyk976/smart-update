@@ -12,6 +12,17 @@
 #define ALPM_DBPATH "/var/lib/pacman/"
 #define REPOSITORY_NAME_MAX 128
 
+typedef enum {
+    OUTPUT_REMOVALS,
+    OUTPUT_REPLACEMENTS
+} output_mode_t;
+
+typedef struct {
+    output_mode_t mode;
+    alpm_list_t *replacements;
+    int collection_failed;
+} question_context_t;
+
 static int repository_name_is_valid(const char *name)
 {
     if (name == NULL || *name == '\0') {
@@ -92,12 +103,50 @@ static int register_sync_databases(alpm_handle_t *handle)
     return 0;
 }
 
-static void answer_question(void *context, alpm_question_t *question)
+static int collect_replacement(question_context_t *context, alpm_question_t *question)
 {
-    (void)context;
+    alpm_pkg_t *old_package = question->replace.oldpkg;
+    alpm_pkg_t *new_package = question->replace.newpkg;
+
+    if (old_package == NULL || new_package == NULL) {
+        return -1;
+    }
+
+    const char *old_name = alpm_pkg_get_name(old_package);
+    const char *new_name = alpm_pkg_get_name(new_package);
+
+    if (old_name == NULL || *old_name == '\0'
+        || new_name == NULL || *new_name == '\0') {
+        return -1;
+    }
+
+    const size_t line_size = strlen(old_name) + strlen(new_name) + 2;
+    char *line = malloc(line_size);
+
+    if (line == NULL) {
+        return -1;
+    }
+
+    if (snprintf(line, line_size, "%s|%s", old_name, new_name) < 0) {
+        free(line);
+        return -1;
+    }
+
+    context->replacements = alpm_list_add(context->replacements, line);
+    return 0;
+}
+
+static void answer_question(void *context_data, alpm_question_t *question)
+{
+    question_context_t *context = context_data;
 
     switch (question->type) {
         case ALPM_QUESTION_REPLACE_PKG:
+            if (context != NULL
+                && context->mode == OUTPUT_REPLACEMENTS
+                && collect_replacement(context, question) != 0) {
+                context->collection_failed = 1;
+            }
             question->replace.replace = 1;
             break;
         case ALPM_QUESTION_CONFLICT_PKG:
@@ -155,12 +204,68 @@ static int print_package_removals(alpm_handle_t *handle)
     return 0;
 }
 
-int main(void)
+static int print_package_replacements(const question_context_t *context)
+{
+    for (const alpm_list_t *item = context->replacements;
+         item != NULL;
+         item = item->next) {
+        const char *replacement = item->data;
+
+        if (replacement == NULL || *replacement == '\0') {
+            fprintf(
+                stderr,
+                "package-removals-helper: invalid replacement entry\n"
+            );
+            return -1;
+        }
+
+        if (printf("%s\n", replacement) < 0) {
+            fprintf(stderr, "package-removals-helper: stdout write failed\n");
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+static int parse_output_mode(int argc, char **argv, output_mode_t *mode)
+{
+    if (argc == 1) {
+        *mode = OUTPUT_REMOVALS;
+        return 0;
+    }
+
+    if (argc == 2 && strcmp(argv[1], "--replacements") == 0) {
+        *mode = OUTPUT_REPLACEMENTS;
+        return 0;
+    }
+
+    fprintf(
+        stderr,
+        "usage: package-removals-helper [--replacements]\n"
+    );
+    return -1;
+}
+
+int main(int argc, char **argv)
 {
     int result = EXIT_FAILURE;
     int transaction_initialized = 0;
     alpm_errno_t error = ALPM_ERR_OK;
     alpm_list_t *prepare_data = NULL;
+    output_mode_t mode = OUTPUT_REMOVALS;
+    question_context_t question_context = {
+        .mode = OUTPUT_REMOVALS,
+        .replacements = NULL,
+        .collection_failed = 0,
+    };
+
+    if (parse_output_mode(argc, argv, &mode) != 0) {
+        return EXIT_FAILURE;
+    }
+
+    question_context.mode = mode;
+
     alpm_handle_t *handle = alpm_initialize(ALPM_ROOT, ALPM_DBPATH, &error);
 
     if (handle == NULL) {
@@ -181,7 +286,7 @@ int main(void)
         goto cleanup;
     }
 
-    if (alpm_option_set_questioncb(handle, answer_question, NULL) != 0) {
+    if (alpm_option_set_questioncb(handle, answer_question, &question_context) != 0) {
         fprintf(
             stderr,
             "package-removals-helper: cannot set question callback: %s\n",
@@ -219,7 +324,19 @@ int main(void)
         goto cleanup;
     }
 
-    if (print_package_removals(handle) != 0) {
+    if (question_context.collection_failed) {
+        fprintf(
+            stderr,
+            "package-removals-helper: replacement collection failed\n"
+        );
+        goto cleanup;
+    }
+
+    if (mode == OUTPUT_REPLACEMENTS) {
+        if (print_package_replacements(&question_context) != 0) {
+            goto cleanup;
+        }
+    } else if (print_package_removals(handle) != 0) {
         goto cleanup;
     }
 
@@ -227,6 +344,8 @@ int main(void)
 
 cleanup:
     alpm_list_free(prepare_data);
+    alpm_list_free_inner(question_context.replacements, free);
+    alpm_list_free(question_context.replacements);
 
     if (transaction_initialized && alpm_trans_release(handle) != 0) {
         fprintf(
