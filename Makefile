@@ -21,6 +21,7 @@ LIB_MODULES := \
 	lib/config.sh \
 	lib/decision.sh \
 	lib/engine.sh \
+	lib/exit_codes.sh \
 	lib/logger.sh \
 	lib/package_removals.sh \
 	lib/package_replacements.sh \
