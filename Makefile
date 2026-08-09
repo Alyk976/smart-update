@@ -1,6 +1,7 @@
 PREFIX ?= /usr
 SYSCONFDIR ?= /etc
 LOCALSTATEDIR ?= /var
+SYSTEMDUNITDIR ?= $(PREFIX)/lib/systemd/system
 
 BINDIR := $(PREFIX)/bin
 LIBDIR := $(PREFIX)/lib/smart-update
@@ -27,15 +28,16 @@ LIB_MODULES := \
 	lib/system_checks.sh
 
 POLICIES := $(wildcard lib/policies/*.sh)
+SYSTEMD_UNITS := systemd/smart-update.service systemd/smart-update.timer
 
-.PHONY: all helper install install-bin install-lib install-config install-runtime clean
+.PHONY: all helper install install-bin install-lib install-config install-runtime install-systemd clean
 
 all: helper
 
 helper:
 	$(MAKE) -C $(HELPER_DIR)
 
-install: helper install-bin install-lib install-config install-runtime
+install: helper install-bin install-lib install-config install-runtime install-systemd
 
 install-bin:
 	install -Dm755 bin/smart-update "$(DESTDIR)$(BINDIR)/smart-update"
@@ -60,6 +62,10 @@ install-runtime:
 		"$(DESTDIR)$(STATEDIR)" \
 		"$(DESTDIR)$(LOGDIR)" \
 		"$(DESTDIR)$(REPORTDIR)"
+
+install-systemd:
+	install -d -m755 "$(DESTDIR)$(SYSTEMDUNITDIR)"
+	install -m644 $(SYSTEMD_UNITS) "$(DESTDIR)$(SYSTEMDUNITDIR)/"
 
 clean:
 	$(MAKE) -C $(HELPER_DIR) clean
