@@ -13,7 +13,7 @@ DECISION_FINAL="BLOCK"
 DECISION_TYPES=("WARNING" "BLOCK")
 DECISION_REASONS=(
     "Mises à jour critiques détectées :"
-    "Nouveaux paquets ou nouvelles dépendances détectés :"
+    "1 nouveau(x) paquet(s) ou nouvelle(s) dépendance(s) détecté(s)."
 )
 
 UPDATE_PACKAGES=(
@@ -63,7 +63,7 @@ grep -Fq "BLOCK" "$REPORT_FILE"
 grep -Fq "[WARNING] Mises à jour critiques détectées :" "$REPORT_FILE"
 grep -Fq "    - linux" "$REPORT_FILE"
 grep -Fq "    - openssl" "$REPORT_FILE"
-grep -Fq "[BLOCK] Nouveaux paquets ou nouvelles dépendances détectés :" "$REPORT_FILE"
+grep -Fq "[BLOCK] 1 nouveau(x) paquet(s) ou nouvelle(s) dépendance(s) détecté(s)." "$REPORT_FILE"
 grep -Fq "    - cmark-gfm" "$REPORT_FILE"
 grep -Fq "Paquets à mettre à jour : 3" "$REPORT_FILE"
 grep -Fq "Paquets critiques       : 2" "$REPORT_FILE"
