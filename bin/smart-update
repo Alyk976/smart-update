@@ -6,102 +6,82 @@ umask 027
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 readonly SCRIPT_DIR
 
-PROJECT_ROOT=$(cd -- "${SCRIPT_DIR}/.." && pwd)
-readonly PROJECT_ROOT
+# Smart Update supporte deux layouts :
+# - développement : <repo>/bin/smart-update + <repo>/lib + <repo>/config
+# - système      : /usr/bin/smart-update + /usr/lib/smart-update + /etc/smart-update
+if [[ -r "${SCRIPT_DIR}/../lib/config.sh" ]]; then
+    PROJECT_ROOT=$(cd -- "${SCRIPT_DIR}/.." && pwd)
+    LIB_DIR="${PROJECT_ROOT}/lib"
+    CONFIG_DIR="${PROJECT_ROOT}/config"
+    TOOLS_DIR="${PROJECT_ROOT}/tools"
+else
+    PROJECT_ROOT="/usr/lib/smart-update"
+    LIB_DIR="/usr/lib/smart-update"
+    CONFIG_DIR="/etc/smart-update"
+    TOOLS_DIR="/usr/lib/smart-update"
+fi
 
-readonly CONFIG_FILE="${PROJECT_ROOT}/config/smart-update.conf"
-readonly CONFIG_MODULE="${PROJECT_ROOT}/lib/config.sh"
-readonly LOGGER_MODULE="${PROJECT_ROOT}/lib/logger.sh"
-readonly DECISION_MODULE="${PROJECT_ROOT}/lib/decision.sh"
-readonly SYSTEM_CHECKS_MODULE="${PROJECT_ROOT}/lib/system_checks.sh"
-readonly REPORT_MODULE="${PROJECT_ROOT}/lib/report.sh"
-readonly ENGINE_MODULE="${PROJECT_ROOT}/lib/engine.sh"
-readonly ARCH_NEWS_CONTEXT_MODULE="${PROJECT_ROOT}/lib/arch_news_context.sh"
-readonly PACKAGE_REMOVALS_MODULE="${PROJECT_ROOT}/lib/package_removals.sh"
-readonly PACKAGE_REPLACEMENTS_MODULE="${PROJECT_ROOT}/lib/package_replacements.sh"
-readonly PACKAGE_REMOVALS_HELPER="${PROJECT_ROOT}/tools/package-removals-helper/package-removals-helper"
+readonly PROJECT_ROOT LIB_DIR CONFIG_DIR TOOLS_DIR
+
+readonly CONFIG_FILE="${CONFIG_DIR}/smart-update.conf"
+readonly CONFIG_MODULE="${LIB_DIR}/config.sh"
+readonly LOGGER_MODULE="${LIB_DIR}/logger.sh"
+readonly DECISION_MODULE="${LIB_DIR}/decision.sh"
+readonly SYSTEM_CHECKS_MODULE="${LIB_DIR}/system_checks.sh"
+readonly REPORT_MODULE="${LIB_DIR}/report.sh"
+readonly ENGINE_MODULE="${LIB_DIR}/engine.sh"
+readonly ARCH_NEWS_CONTEXT_MODULE="${LIB_DIR}/arch_news_context.sh"
+readonly PACKAGE_REMOVALS_MODULE="${LIB_DIR}/package_removals.sh"
+readonly PACKAGE_REPLACEMENTS_MODULE="${LIB_DIR}/package_replacements.sh"
+
+if [[ -x "${TOOLS_DIR}/package-removals-helper/package-removals-helper" ]]; then
+    readonly PACKAGE_REMOVALS_HELPER="${TOOLS_DIR}/package-removals-helper/package-removals-helper"
+else
+    readonly PACKAGE_REMOVALS_HELPER="${TOOLS_DIR}/package-removals-helper"
+fi
+
 readonly LOCK_FILE="/run/lock/smart-update.lock"
 readonly STATE_DIR="/var/lib/smart-update"
 readonly LAST_SUCCESS_FILE="${STATE_DIR}/last-success"
 readonly ARCH_NEWS_STATE_FILE="${STATE_DIR}/arch-news.last"
 
-if [[ ! -r "$CONFIG_MODULE" ]]; then
-    printf 'Module de configuration absent : %s\n' "$CONFIG_MODULE" >&2
-    exit 1
-fi
+for required_module in \
+    "$CONFIG_MODULE" \
+    "$LOGGER_MODULE" \
+    "$DECISION_MODULE" \
+    "$SYSTEM_CHECKS_MODULE" \
+    "$REPORT_MODULE" \
+    "$ENGINE_MODULE" \
+    "$ARCH_NEWS_CONTEXT_MODULE" \
+    "$PACKAGE_REMOVALS_MODULE" \
+    "$PACKAGE_REPLACEMENTS_MODULE"; do
 
-if [[ ! -r "$LOGGER_MODULE" ]]; then
-    printf 'Module de journalisation absent : %s\n' "$LOGGER_MODULE" >&2
-    exit 1
-fi
-
-if [[ ! -r "$DECISION_MODULE" ]]; then
-    printf 'Module de décision absent : %s\n' "$DECISION_MODULE" >&2
-    exit 1
-fi
-
-if [[ ! -r "$SYSTEM_CHECKS_MODULE" ]]; then
-    printf 'Module des contrôles système absent : %s\n' "$SYSTEM_CHECKS_MODULE" >&2
-    exit 1
-fi
-
-if [[ ! -r "$REPORT_MODULE" ]]; then
-    printf 'Module de rapports absent : %s\n' "$REPORT_MODULE" >&2
-    exit 1
-fi
-
-if [[ ! -r "$ENGINE_MODULE" ]]; then
-    printf 'Module moteur absent : %s\n' "$ENGINE_MODULE" >&2
-    exit 1
-fi
-
-if [[ ! -r "$ARCH_NEWS_CONTEXT_MODULE" ]]; then
-    printf 'Module de contexte Arch News absent : %s\n' \
-        "$ARCH_NEWS_CONTEXT_MODULE" >&2
-    exit 1
-fi
-
-if [[ ! -r "$PACKAGE_REMOVALS_MODULE" ]]; then
-    printf 'Module de collecte des suppressions absent : %s\n' \
-        "$PACKAGE_REMOVALS_MODULE" >&2
-    exit 1
-fi
-
-if [[ ! -r "$PACKAGE_REPLACEMENTS_MODULE" ]]; then
-    printf 'Module de collecte des remplacements absent : %s\n' \
-        "$PACKAGE_REPLACEMENTS_MODULE" >&2
-    exit 1
-fi
+    if [[ ! -r "$required_module" ]]; then
+        printf 'Module Smart Update absent : %s\n' "$required_module" >&2
+        exit 1
+    fi
+done
 
 # shellcheck source=lib/config.sh
-source "${PROJECT_ROOT}/lib/config.sh"
-
+source "$CONFIG_MODULE"
 # shellcheck source=lib/logger.sh
-source "${PROJECT_ROOT}/lib/logger.sh"
-
+source "$LOGGER_MODULE"
 # shellcheck source=lib/decision.sh
-source "${PROJECT_ROOT}/lib/decision.sh"
-
+source "$DECISION_MODULE"
 # shellcheck source=lib/system_checks.sh
-source "${PROJECT_ROOT}/lib/system_checks.sh"
-
+source "$SYSTEM_CHECKS_MODULE"
 # shellcheck source=lib/report.sh
-source "${PROJECT_ROOT}/lib/report.sh"
-
+source "$REPORT_MODULE"
 # shellcheck source=lib/engine.sh
-source "${PROJECT_ROOT}/lib/engine.sh"
-
+source "$ENGINE_MODULE"
 # shellcheck source=lib/arch_news_context.sh
-source "${PROJECT_ROOT}/lib/arch_news_context.sh"
-
+source "$ARCH_NEWS_CONTEXT_MODULE"
 # shellcheck source=lib/package_removals.sh
-source "${PROJECT_ROOT}/lib/package_removals.sh"
-
+source "$PACKAGE_REMOVALS_MODULE"
 # shellcheck source=lib/package_replacements.sh
-source "${PROJECT_ROOT}/lib/package_replacements.sh"
+source "$PACKAGE_REPLACEMENTS_MODULE"
 
 decision_reset
-
 config_load "$CONFIG_FILE"
 
 install -d -m 0750 "$STATE_DIR"
@@ -110,7 +90,6 @@ touch "$LOG_FILE" "$BLOCKED_LOG"
 chmod 640 "$LOG_FILE" "$BLOCKED_LOG"
 
 exec 9>"$LOCK_FILE"
-
 if ! flock -n 9; then
     decision_add "BLOCK" "Une autre instance de Smart Update est déjà active."
     logger_blocked "${DECISION_REASONS[-1]}"
@@ -127,197 +106,90 @@ NEW_PACKAGES_ERROR=""
 TRANSACTION_SIMULATION=""
 
 load_updates() {
-    local output
-    local status
-
+    local output status line package_name
     logger_info "Recherche sécurisée des mises à jour."
-
     set +e
     output=$(checkupdates 2>&1)
     status=$?
     set -e
-
     case "$status" in
-        0)
-            mapfile -t UPDATE_LINES <<<"$output"
-            ;;
-
-        2)
-            logger_info "Aucune mise à jour disponible."
-            exit 0
-            ;;
-
-        *)
-            logger_error "Échec de checkupdates :"
-            printf '%s\n' "$output" | tee -a "$LOG_FILE"
-            exit 21
-            ;;
+        0) mapfile -t UPDATE_LINES <<<"$output" ;;
+        2) logger_info "Aucune mise à jour disponible."; exit 0 ;;
+        *) logger_error "Échec de checkupdates :"; printf '%s\n' "$output" | tee -a "$LOG_FILE"; exit 21 ;;
     esac
-
-    local line
-    local package_name
-
     for line in "${UPDATE_LINES[@]}"; do
         package_name=${line%% *}
         UPDATE_PACKAGES+=("$package_name")
     done
-
     logger_info "${#UPDATE_PACKAGES[@]} mise(s) à jour détectée(s)."
-
-    printf '%s\n' "${UPDATE_LINES[@]}" \
-        | tee -a "$LOG_FILE"
+    printf '%s\n' "${UPDATE_LINES[@]}" | tee -a "$LOG_FILE"
 }
 
 prepare_arch_news_context() {
-    # Une erreur de préparation devient un contexte ERROR.
-    # La politique Arch News transformera ce statut en décision.
-    if ! arch_news_prepare \
-        "$CHECK_ARCH_NEWS" \
-        "$ARCH_NEWS_FEED_URL" \
-        "$ARCH_NEWS_LIMIT" \
-        "$ARCH_NEWS_STATE_FILE"; then
-
-        return 0
-    fi
+    arch_news_prepare "$CHECK_ARCH_NEWS" "$ARCH_NEWS_FEED_URL" "$ARCH_NEWS_LIMIT" "$ARCH_NEWS_STATE_FILE" || return 0
 }
 
 prepare_package_removals_context() {
     logger_info "Analyse des suppressions prévues par la transaction."
-
-    # Une erreur du collecteur est conservée dans PACKAGE_REMOVALS_ERROR.
-    # La politique package_removals la transformera en décision BLOCK.
-    if ! package_removals_collect "$PACKAGE_REMOVALS_HELPER"; then
-        return 0
-    fi
-
+    package_removals_collect "$PACKAGE_REMOVALS_HELPER" || return 0
     logger_info "${#PACKAGE_REMOVALS[@]} suppression(s) prévue(s) par libalpm."
 }
 
 prepare_package_replacements_context() {
     logger_info "Analyse des remplacements prévus par la transaction."
-
-    # Une erreur du collecteur est conservée dans PACKAGE_REPLACEMENTS_ERROR.
-    # La politique package_replacements la transformera en décision BLOCK.
-    if ! package_replacements_collect "$PACKAGE_REMOVALS_HELPER"; then
-        return 0
-    fi
-
+    package_replacements_collect "$PACKAGE_REMOVALS_HELPER" || return 0
     logger_info "${#PACKAGE_REPLACEMENTS[@]} remplacement(s) prévu(s) par libalpm."
 }
 
 prepare_transaction_context() {
     logger_info "Préparation du contexte de transaction Pacman."
-
-    local status
-    local planned_file
-    local installed_file
-    local new_packages_file
-
+    local status planned_file installed_file new_packages_file
     NEW_PACKAGES=()
     NEW_PACKAGES_ERROR=""
     TRANSACTION_SIMULATION=""
-
     planned_file=$(mktemp)
     installed_file=$(mktemp)
     new_packages_file=$(mktemp)
-
     set +e
-    TRANSACTION_SIMULATION=$(
-        LC_ALL=C pacman -Syu \
-            --print \
-            --print-format '%n %v %r' 2>&1
-    )
+    TRANSACTION_SIMULATION=$(LC_ALL=C pacman -Syu --print --print-format '%n %v %r' 2>&1)
     status=$?
     set -e
-
     if ((status != 0)); then
         NEW_PACKAGES_ERROR="La simulation Pacman a échoué."
         logger_error "$NEW_PACKAGES_ERROR"
-
-        printf '%s\n' "$TRANSACTION_SIMULATION" \
-            | tee -a "$LOG_FILE" "$BLOCKED_LOG"
-
+        printf '%s\n' "$TRANSACTION_SIMULATION" | tee -a "$LOG_FILE" "$BLOCKED_LOG"
         rm -f "$planned_file" "$installed_file" "$new_packages_file"
         return 0
     fi
-
-    printf '%s\n' "$TRANSACTION_SIMULATION" \
-        | awk 'NF == 3 && $1 ~ /^[a-zA-Z0-9@._+:-]+$/ {print $1}' \
-        | sort -u >"$planned_file"
-
-    pacman -Qq \
-        | sort -u >"$installed_file"
-
+    printf '%s\n' "$TRANSACTION_SIMULATION" | awk 'NF == 3 && $1 ~ /^[a-zA-Z0-9@._+:-]+$/ {print $1}' | sort -u >"$planned_file"
+    pacman -Qq | sort -u >"$installed_file"
     comm -13 "$installed_file" "$planned_file" >"$new_packages_file"
     mapfile -t NEW_PACKAGES <"$new_packages_file"
-
-    logger_info \
-        "${#NEW_PACKAGES[@]} nouveau(x) paquet(s) ou nouvelle(s) dépendance(s) détecté(s)."
-
+    logger_info "${#NEW_PACKAGES[@]} nouveau(x) paquet(s) ou nouvelle(s) dépendance(s) détecté(s)."
     rm -f "$planned_file" "$installed_file" "$new_packages_file"
 }
 
 persist_arch_news_context() {
-    [[ "${ARCH_NEWS_CONTEXT_STATUS:-}" == "NEW" ]] \
-        || return 0
-
-    case "${DECISION_FINAL:-}" in
-        ALLOW | WARNING)
-            ;;
-        *)
-            return 0
-            ;;
-    esac
-
-    if arch_news_state_save \
-        "$ARCH_NEWS_STATE_FILE" \
-        "$ARCH_NEWS_LATEST_GUID"; then
-
+    [[ "${ARCH_NEWS_CONTEXT_STATUS:-}" == "NEW" ]] || return 0
+    case "${DECISION_FINAL:-}" in ALLOW|WARNING) ;; *) return 0 ;; esac
+    if arch_news_state_save "$ARCH_NEWS_STATE_FILE" "$ARCH_NEWS_LATEST_GUID"; then
         logger_info "État Arch News enregistré."
         return 0
     fi
-
-    decision_add \
-        "BLOCK" \
-        "${ARCH_NEWS_STATE_ERROR:-Impossible d’enregistrer l’état Arch News.}"
-
+    decision_add "BLOCK" "${ARCH_NEWS_STATE_ERROR:-Impossible d’enregistrer l’état Arch News.}"
     logger_blocked "${DECISION_REASONS[-1]}"
 }
 
 simulate_transaction() {
-    {
-        echo
-        echo "Simulation de transaction :"
-        printf '%s\n' "$TRANSACTION_SIMULATION"
-        echo
-    } >>"$LOG_FILE"
+    { echo; echo "Simulation de transaction :"; printf '%s\n' "$TRANSACTION_SIMULATION"; echo; } >>"$LOG_FILE"
 }
 
 enforce_final_decision() {
     local gate_status
-
-    if decision_allows_installation; then
-        return 0
-    else
-        gate_status=$?
-    fi
-
+    if decision_allows_installation; then return 0; else gate_status=$?; fi
     case "$gate_status" in
-        1)
-            logger_blocked \
-                "Installation interdite par la décision finale BLOCK."
-
-            report_finalize
-            exit 29
-            ;;
-
-        *)
-            logger_error \
-                "Décision finale invalide : ${DECISION_FINAL:-undefined}."
-
-            report_finalize
-            exit 30
-            ;;
+        1) logger_blocked "Installation interdite par la décision finale BLOCK."; report_finalize; exit 29 ;;
+        *) logger_error "Décision finale invalide : ${DECISION_FINAL:-undefined}."; report_finalize; exit 30 ;;
     esac
 }
 
@@ -326,35 +198,19 @@ install_updates() {
         logger_info "Mode audit : aucune installation effectuée."
         return 0
     fi
-
     if [[ "$MODE" != "guarded" ]]; then
-        decision_add \
-            "BLOCK" \
-            "Mode inconnu dans la configuration : ${MODE}"
-
+        decision_add "BLOCK" "Mode inconnu dans la configuration : ${MODE}"
         logger_blocked "${DECISION_REASONS[-1]}"
         exit 28
     fi
-
     logger_info "Installation de la mise à jour complète des dépôts officiels."
-
-    # L’entrée standard est fermée afin qu’aucune question inattendue
-    # ne soit automatiquement acceptée.
-
-    if ! pacman -Syu --needed </dev/null 2>&1 \
-        | tee -a "$LOG_FILE"; then
-
-        decision_add \
-            "BLOCK" \
-            "Pacman a interrompu ou refusé la transaction."
-
+    if ! pacman -Syu --needed </dev/null 2>&1 | tee -a "$LOG_FILE"; then
+        decision_add "BLOCK" "Pacman a interrompu ou refusé la transaction."
         logger_blocked "${DECISION_REASONS[-1]}"
         exit 26
     fi
-
     date --iso-8601=seconds >"$LAST_SUCCESS_FILE"
     chmod 640 "$LAST_SUCCESS_FILE"
-
     logger_info "Mise à jour terminée avec succès."
 }
 
@@ -366,16 +222,13 @@ main() {
     check_pacman_lock
     check_root_space
     create_report
-
     load_updates
     prepare_arch_news_context
     prepare_package_removals_context
     prepare_package_replacements_context
     prepare_transaction_context
-
     engine_load_policies
     engine_run_policies
-
     simulate_transaction
     persist_arch_news_context
     enforce_final_decision
