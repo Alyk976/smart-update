@@ -6,6 +6,7 @@ set -Eeuo pipefail
 source "./lib/policies/50_package_removals.sh"
 
 declare -a PACKAGE_REMOVALS=()
+PACKAGE_REMOVALS_ERROR=""
 ALLOW_REMOVALS="no"
 
 policy_run
@@ -44,6 +45,16 @@ policy_run
 
 [[ "$POLICY_RESULT" == "BLOCK" ]]
 [[ "$POLICY_REASON" == "Configuration ALLOW_REMOVALS invalide : invalid." ]]
+((${#POLICY_DETAILS[@]} == 0))
+
+PACKAGE_REMOVALS=()
+PACKAGE_REMOVALS_ERROR="Collecteur indisponible."
+ALLOW_REMOVALS="no"
+
+policy_run
+
+[[ "$POLICY_RESULT" == "BLOCK" ]]
+[[ "$POLICY_REASON" == "Impossible d'analyser les suppressions de paquets : Collecteur indisponible." ]]
 ((${#POLICY_DETAILS[@]} == 0))
 
 printf "Tous les tests de la politique des suppressions ont réussi.\n"
