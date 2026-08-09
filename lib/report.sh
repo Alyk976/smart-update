@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 
+REPORT_FINALIZED="no"
+
 create_report() {
     local timestamp
 
+    REPORT_FINALIZED="no"
     REPORT_START_EPOCH=$(date +%s)
     timestamp=$(date '+%Y%m%d-%H%M%S')
     REPORT_FILE="${REPORT_DIR}/report-${timestamp}.txt"
@@ -35,6 +38,14 @@ report_finalize() {
     local foreign_package_count
     local exit_label
     local exit_description
+
+    if [[ "${REPORT_FINALIZED:-no}" == "yes" ]]; then
+        return 0
+    fi
+
+    if [[ -z "${REPORT_FILE:-}" || ! -f "$REPORT_FILE" ]]; then
+        return 0
+    fi
 
     end_epoch=$(date +%s)
     duration_seconds=$((end_epoch - REPORT_START_EPOCH))
@@ -99,6 +110,7 @@ report_finalize() {
         echo "Fin du rapport : $(date --iso-8601=seconds)"
     } >>"$REPORT_FILE"
 
+    REPORT_FINALIZED="yes"
     logger_info "Rapport finalisé : ${REPORT_FILE}"
 }
 
