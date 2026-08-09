@@ -109,6 +109,20 @@ declare -a NEW_PACKAGES=()
 NEW_PACKAGES_ERROR=""
 TRANSACTION_SIMULATION=""
 
+finalize_report_on_exit() {
+    local exit_code=$?
+
+    trap - EXIT
+
+    if [[ -n "${REPORT_FILE:-}" \
+        && -f "${REPORT_FILE}" \
+        && "${REPORT_FINALIZED:-no}" != "yes" ]]; then
+        report_finalize "$exit_code" || true
+    fi
+
+    exit "$exit_code"
+}
+
 load_updates() {
     local output status line package_name
     logger_info "Recherche sécurisée des mises à jour."
@@ -222,10 +236,11 @@ main() {
     require_root
     check_required_commands
     cleanup_old_reports
+    create_report
+    trap finalize_report_on_exit EXIT
     check_network
     check_pacman_lock
     check_root_space
-    create_report
     load_updates
     prepare_arch_news_context
     prepare_package_removals_context
