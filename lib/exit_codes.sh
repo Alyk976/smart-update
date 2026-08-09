@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034
 
 # Codes de sortie publics de Smart Update v2.
+# Ces constantes sont consommées par les modules qui sourcent ce fichier ;
+# ShellCheck ne suit pas ces usages inter-fichiers.
 readonly EXIT_OK=0
 readonly EXIT_GENERAL_ERROR=1
 readonly EXIT_LOW_DISK_SPACE=10
