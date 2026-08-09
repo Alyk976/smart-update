@@ -5,7 +5,7 @@
 # Policy Engine
 # ==========================================
 
-ENGINE_POLICY_DIR="${PROJECT_ROOT}/lib/policies"
+ENGINE_POLICY_DIR="${LIB_DIR:-${PROJECT_ROOT}/lib}/policies"
 ENGINE_POLICIES=()
 
 engine_load_policies() {
