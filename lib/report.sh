@@ -80,7 +80,7 @@ report_finalize() {
                             printf '    - %s\n' "${CRITICAL_UPDATES[@]}"
                         fi
                         ;;
-                    "Nouveaux paquets ou nouvelles dépendances détectés :")
+                    *"nouveau(x) paquet(s) ou nouvelle(s) dépendance(s) détecté(s).")
                         if ((${#NEW_PACKAGES[@]} > 0)); then
                             printf '    - %s\n' "${NEW_PACKAGES[@]}"
                         fi
