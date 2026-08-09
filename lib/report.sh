@@ -25,6 +25,7 @@ create_report() {
 }
 
 report_finalize() {
+    local exit_code="${1:-0}"
     local index
     local end_epoch
     local duration_seconds
@@ -32,6 +33,8 @@ report_finalize() {
     local duration_minutes
     local duration_remaining_seconds
     local foreign_package_count
+    local exit_label
+    local exit_description
 
     end_epoch=$(date +%s)
     duration_seconds=$((end_epoch - REPORT_START_EPOCH))
@@ -39,6 +42,8 @@ report_finalize() {
     duration_minutes=$(((duration_seconds % 3600) / 60))
     duration_remaining_seconds=$((duration_seconds % 60))
     foreign_package_count=$(pacman -Qmq 2>/dev/null | wc -l)
+    exit_label=$(exit_code_label "$exit_code")
+    exit_description=$(exit_code_description "$exit_code")
 
     {
         echo
@@ -83,6 +88,8 @@ report_finalize() {
         printf 'Nouvelles dépendances   : %d\n' "${#NEW_PACKAGES[@]}"
         printf 'Paquets étrangers/AUR   : %d\n' "$foreign_package_count"
         printf 'Verdict                  : %s\n' "$DECISION_FINAL"
+        printf 'Code de sortie           : %d (%s)\n' "$exit_code" "$exit_label"
+        printf 'Statut                    : %s\n' "$exit_description"
         printf 'Durée                    : %02d:%02d:%02d\n' \
             "$duration_hours" \
             "$duration_minutes" \
