@@ -28,6 +28,7 @@ assert_line() {
 
 assert_line "$SERVICE" 'Type=oneshot'
 assert_line "$SERVICE" 'ExecStart=/usr/bin/smart-update'
+assert_line "$SERVICE" 'SuccessExitStatus=29'
 assert_line "$SERVICE" 'User=root'
 assert_line "$SERVICE" 'Group=root'
 assert_line "$SERVICE" 'UMask=0027'
