@@ -122,6 +122,9 @@ trap 'logger_error "Erreur ligne ${LINENO} : ${BASH_COMMAND}"' ERR
 declare -a UPDATE_LINES=()
 declare -a UPDATE_PACKAGES=()
 declare -a CRITICAL_UPDATES=()
+declare -a NEW_PACKAGES=()
+NEW_PACKAGES_ERROR=""
+TRANSACTION_SIMULATION=""
 
 load_updates() {
     local output
@@ -202,6 +205,58 @@ prepare_package_replacements_context() {
     logger_info "${#PACKAGE_REPLACEMENTS[@]} remplacement(s) prévu(s) par libalpm."
 }
 
+prepare_transaction_context() {
+    logger_info "Préparation du contexte de transaction Pacman."
+
+    local status
+    local planned_file
+    local installed_file
+    local new_packages_file
+
+    NEW_PACKAGES=()
+    NEW_PACKAGES_ERROR=""
+    TRANSACTION_SIMULATION=""
+
+    planned_file=$(mktemp)
+    installed_file=$(mktemp)
+    new_packages_file=$(mktemp)
+
+    set +e
+    TRANSACTION_SIMULATION=$(
+        LC_ALL=C pacman -Syu \
+            --print \
+            --print-format '%n %v %r' 2>&1
+    )
+    status=$?
+    set -e
+
+    if ((status != 0)); then
+        NEW_PACKAGES_ERROR="La simulation Pacman a échoué."
+        logger_error "$NEW_PACKAGES_ERROR"
+
+        printf '%s\n' "$TRANSACTION_SIMULATION" \
+            | tee -a "$LOG_FILE" "$BLOCKED_LOG"
+
+        rm -f "$planned_file" "$installed_file" "$new_packages_file"
+        return 0
+    fi
+
+    printf '%s\n' "$TRANSACTION_SIMULATION" \
+        | awk 'NF == 3 && $1 ~ /^[a-zA-Z0-9@._+:-]+$/ {print $1}' \
+        | sort -u >"$planned_file"
+
+    pacman -Qq \
+        | sort -u >"$installed_file"
+
+    comm -13 "$installed_file" "$planned_file" >"$new_packages_file"
+    mapfile -t NEW_PACKAGES <"$new_packages_file"
+
+    logger_info \
+        "${#NEW_PACKAGES[@]} nouveau(x) paquet(s) ou nouvelle(s) dépendance(s) détecté(s)."
+
+    rm -f "$planned_file" "$installed_file" "$new_packages_file"
+}
+
 persist_arch_news_context() {
     [[ "${ARCH_NEWS_CONTEXT_STATUS:-}" == "NEW" ]] \
         || return 0
@@ -230,92 +285,12 @@ persist_arch_news_context() {
 }
 
 simulate_transaction() {
-    logger_info "Simulation de la transaction Pacman."
-
-    local simulation
-    local status
-    local planned_file
-    local installed_file
-    local new_packages_file
-
-    planned_file=$(mktemp)
-    installed_file=$(mktemp)
-    new_packages_file=$(mktemp)
-
-    set +e
-    simulation=$(
-        LC_ALL=C pacman -Syu \
-            --print \
-            --print-format '%n %v %r' 2>&1
-    )
-    status=$?
-    set -e
-
-    if ((status != 0)); then
-        decision_add \
-            "BLOCK" \
-            "La simulation Pacman a échoué."
-
-        logger_blocked "${DECISION_REASONS[-1]}"
-
-        printf '%s\n' "$simulation" \
-            | tee -a "$LOG_FILE" "$BLOCKED_LOG"
-
-        rm -f "$planned_file" "$installed_file" "$new_packages_file"
-        exit 25
-    fi
-
-    printf '%s\n' "$simulation" \
-        | awk 'NF == 3 && $1 ~ /^[a-zA-Z0-9@._+:-]+$/ {print $1}' \
-        | sort -u >"$planned_file"
-
-    pacman -Qq \
-        | sort -u >"$installed_file"
-
-    comm -13 "$installed_file" "$planned_file" >"$new_packages_file"
-
     {
         echo
         echo "Simulation de transaction :"
-        printf '%s\n' "$simulation"
+        printf '%s\n' "$TRANSACTION_SIMULATION"
         echo
     } >>"$LOG_FILE"
-
-    mapfile -t NEW_PACKAGES <"$new_packages_file"
-
-    if ((${#NEW_PACKAGES[@]} > 0)); then
-        if [[ "$ALLOW_NEW_DEPENDENCIES" == "yes" ]]; then
-            decision_add \
-                "WARNING" \
-                "Nouveaux paquets ou nouvelles dépendances détectés :"
-
-            logger_warning "${DECISION_REASONS[-1]}"
-
-            printf '%s\n' "${NEW_PACKAGES[@]}" \
-                | tee -a "$LOG_FILE"
-        else
-            decision_add \
-                "BLOCK" \
-                "Nouveaux paquets ou nouvelles dépendances détectés :"
-
-            logger_blocked "${DECISION_REASONS[-1]}"
-
-            printf '%s\n' "${NEW_PACKAGES[@]}" \
-                | tee -a "$LOG_FILE" "$BLOCKED_LOG"
-
-            if [[ "$MODE" == "audit" ]]; then
-                decision_add \
-                    "WARNING" \
-                    "Mode audit : nouveaux paquets signalés sans installation."
-
-                logger_warning "${DECISION_REASONS[-1]}"
-            fi
-        fi
-    else
-        logger_info "Aucun nouveau paquet détecté dans la transaction."
-    fi
-
-    rm -f "$planned_file" "$installed_file" "$new_packages_file"
 }
 
 enforce_final_decision() {
@@ -396,6 +371,7 @@ main() {
     prepare_arch_news_context
     prepare_package_removals_context
     prepare_package_replacements_context
+    prepare_transaction_context
 
     engine_load_policies
     engine_run_policies
