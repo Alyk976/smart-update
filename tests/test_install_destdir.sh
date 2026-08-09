@@ -62,6 +62,7 @@ assert_file /usr/lib/smart-update/arch_news_context.sh
 assert_file /usr/lib/smart-update/arch_news_state.sh
 assert_file /usr/lib/smart-update/config.sh
 assert_file /usr/lib/smart-update/engine.sh
+assert_file /usr/lib/smart-update/exit_codes.sh
 assert_file /usr/lib/smart-update/package-removals-helper
 assert_file /usr/lib/smart-update/policies/10_update_count.sh
 assert_file /usr/lib/smart-update/policies/80_new_dependencies.sh
@@ -85,6 +86,7 @@ assert_mode /usr/lib/smart-update/arch_news_context.sh 644
 assert_mode /usr/lib/smart-update/arch_news_state.sh 644
 assert_mode /usr/lib/smart-update/config.sh 644
 assert_mode /usr/lib/smart-update/engine.sh 644
+assert_mode /usr/lib/smart-update/exit_codes.sh 644
 assert_mode /usr/lib/smart-update/policies 755
 assert_mode /usr/lib/smart-update/policies/10_update_count.sh 644
 assert_mode /usr/lib/smart-update/policies/80_new_dependencies.sh 644
@@ -104,6 +106,7 @@ assert_same_file lib/arch_news_context.sh /usr/lib/smart-update/arch_news_contex
 assert_same_file lib/arch_news_state.sh /usr/lib/smart-update/arch_news_state.sh
 assert_same_file lib/config.sh /usr/lib/smart-update/config.sh
 assert_same_file lib/engine.sh /usr/lib/smart-update/engine.sh
+assert_same_file lib/exit_codes.sh /usr/lib/smart-update/exit_codes.sh
 assert_same_file lib/policies/10_update_count.sh \
     /usr/lib/smart-update/policies/10_update_count.sh
 assert_same_file lib/policies/80_new_dependencies.sh \
