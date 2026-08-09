@@ -17,8 +17,7 @@ assert_exact_line() {
 
     if ((count != 1)); then
         printf 'Erreur : ligne attendue %q trouvée %d fois.\n' \
-            "$expected_line" \
-            "$count" >&2
+            "$expected_line" "$count" >&2
         exit 1
     fi
 }
@@ -26,18 +25,23 @@ assert_exact_line() {
 line_number() {
     local expected_line="${1:-}"
 
-    grep -F -n -m 1 -x -- "$expected_line" "$TARGET" \
-        | cut -d: -f1
+    grep -F -n -m 1 -x -- "$expected_line" "$TARGET" | cut -d: -f1
 }
 
 assert_exact_line \
-    'readonly PACKAGE_REMOVALS_MODULE="${PROJECT_ROOT}/lib/package_removals.sh"'
+    'readonly PACKAGE_REMOVALS_MODULE="${LIB_DIR}/package_removals.sh"'
 
 assert_exact_line \
-    'readonly PACKAGE_REMOVALS_HELPER="${PROJECT_ROOT}/tools/package-removals-helper/package-removals-helper"'
+    'source "$PACKAGE_REMOVALS_MODULE"'
 
 assert_exact_line \
-    'source "${PROJECT_ROOT}/lib/package_removals.sh"'
+    'if [[ -x "${TOOLS_DIR}/package-removals-helper/package-removals-helper" ]]; then'
+
+assert_exact_line \
+    '    readonly PACKAGE_REMOVALS_HELPER="${TOOLS_DIR}/package-removals-helper/package-removals-helper"'
+
+assert_exact_line \
+    '    readonly PACKAGE_REMOVALS_HELPER="${TOOLS_DIR}/package-removals-helper"'
 
 assert_exact_line 'prepare_package_removals_context() {'
 assert_exact_line '    prepare_package_removals_context'
