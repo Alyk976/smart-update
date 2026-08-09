@@ -65,17 +65,19 @@ assert_file /usr/lib/smart-update/engine.sh
 assert_file /usr/lib/smart-update/package-removals-helper
 assert_file /usr/lib/smart-update/policies/10_update_count.sh
 assert_file /usr/lib/smart-update/policies/80_new_dependencies.sh
+assert_file /usr/lib/systemd/system/smart-update.service
+assert_file /usr/lib/systemd/system/smart-update.timer
 assert_file /etc/smart-update/smart-update.conf
 assert_file /etc/smart-update/critical-packages.conf
 
 assert_dir /usr/lib/smart-update
 assert_dir /usr/lib/smart-update/policies
+assert_dir /usr/lib/systemd/system
 assert_dir /etc/smart-update
 assert_dir /var/lib/smart-update
 assert_dir /var/log/smart-update
 assert_dir /var/log/smart-update/reports
 
-# Permissions des exécutables, modules, policies et données sensibles.
 assert_mode /usr/bin/smart-update 755
 assert_mode /usr/lib/smart-update 755
 assert_mode /usr/lib/smart-update/arch_news.sh 644
@@ -87,6 +89,8 @@ assert_mode /usr/lib/smart-update/policies 755
 assert_mode /usr/lib/smart-update/policies/10_update_count.sh 644
 assert_mode /usr/lib/smart-update/policies/80_new_dependencies.sh 644
 assert_mode /usr/lib/smart-update/package-removals-helper 755
+assert_mode /usr/lib/systemd/system/smart-update.service 644
+assert_mode /usr/lib/systemd/system/smart-update.timer 644
 assert_mode /etc/smart-update 750
 assert_mode /etc/smart-update/smart-update.conf 640
 assert_mode /etc/smart-update/critical-packages.conf 640
@@ -94,7 +98,6 @@ assert_mode /var/lib/smart-update 750
 assert_mode /var/log/smart-update 750
 assert_mode /var/log/smart-update/reports 750
 
-# Les fichiers installés doivent correspondre exactement aux sources livrées.
 assert_same_file bin/smart-update /usr/bin/smart-update
 assert_same_file lib/arch_news.sh /usr/lib/smart-update/arch_news.sh
 assert_same_file lib/arch_news_context.sh /usr/lib/smart-update/arch_news_context.sh
@@ -105,16 +108,18 @@ assert_same_file lib/policies/10_update_count.sh \
     /usr/lib/smart-update/policies/10_update_count.sh
 assert_same_file lib/policies/80_new_dependencies.sh \
     /usr/lib/smart-update/policies/80_new_dependencies.sh
+assert_same_file systemd/smart-update.service \
+    /usr/lib/systemd/system/smart-update.service
+assert_same_file systemd/smart-update.timer \
+    /usr/lib/systemd/system/smart-update.timer
 assert_same_file config/smart-update.conf \
     /etc/smart-update/smart-update.conf
 assert_same_file config/critical-packages.conf \
     /etc/smart-update/critical-packages.conf
 
-# Le helper natif doit être un exécutable non vide.
 [[ -s "$ROOTFS/usr/lib/smart-update/package-removals-helper" ]]
 [[ -x "$ROOTFS/usr/lib/smart-update/package-removals-helper" ]]
 
-# L'installation ne doit écraser aucune configuration administrateur existante.
 printf 'sentinel-smart-update=true\n' \
     >"$ROOTFS/etc/smart-update/smart-update.conf"
 printf 'sentinel-critical-packages=true\n' \
