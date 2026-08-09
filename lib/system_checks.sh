@@ -74,7 +74,7 @@ check_root_space() {
 
     if ((available_mib < MIN_ROOT_FREE_MIB)); then
         logger_blocked "Espace insuffisant : ${available_mib} Mio disponibles."
-        exit 10
+        exit "$EXIT_LOW_DISK_SPACE"
     fi
 }
 
@@ -88,10 +88,10 @@ check_pacman_lock() {
         || pgrep -x paru >/dev/null 2>&1; then
 
         logger_blocked "Un gestionnaire de paquets est déjà en cours d’exécution."
-        exit 11
+        exit "$EXIT_PACKAGE_MANAGER_ACTIVE"
     fi
 
     logger_blocked "Le verrou /var/lib/pacman/db.lck existe sans processus Pacman actif."
     logger_blocked "Suppression automatique refusée. Vérification manuelle nécessaire."
-    exit 12
+    exit "$EXIT_STALE_PACMAN_LOCK"
 }
