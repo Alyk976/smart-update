@@ -1,7 +1,18 @@
 [Unit]
-Description=Smart Arch Update
+Description=Smart Update v2 guarded Arch Linux update service
+Documentation=https://github.com/Alyk976/smart-update-v2
+Wants=network-online.target
 After=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/smart-update.sh
+ExecStart=/usr/bin/smart-update
+User=root
+Group=root
+UMask=0027
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=multi-user.target
