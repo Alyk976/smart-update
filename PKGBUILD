@@ -1,3 +1,5 @@
+# Maintainer: Mahadi Alykitra <Alyk976@users.noreply.github.com>
+
 pkgname=smart-update-v2
 pkgver=1.0.0rc1
 pkgrel=1
