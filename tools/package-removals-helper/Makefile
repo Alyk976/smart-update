@@ -14,7 +14,7 @@ SOURCES := main.c
 all: $(TARGET)
 
 $(TARGET): $(SOURCES)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $(SOURCES) $(LDLIBS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(SOURCES) $(LDLIBS)
 
 check: $(TARGET)
 	./$(TARGET)
