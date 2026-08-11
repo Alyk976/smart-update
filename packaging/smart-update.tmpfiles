@@ -1,0 +1,5 @@
+# Smart Update v2 runtime directories
+# Type Path                            Mode User Group Age Argument
+d /var/lib/smart-update               0750 root root -   -
+d /var/log/smart-update               0750 root root -   -
+d /var/log/smart-update/reports       0750 root root -   -
