@@ -14,7 +14,8 @@
 
 typedef enum {
     OUTPUT_REMOVALS,
-    OUTPUT_REPLACEMENTS
+    OUTPUT_REPLACEMENTS,
+    OUTPUT_ADDITIONS
 } output_mode_t;
 
 typedef struct {
@@ -170,9 +171,9 @@ static void answer_question(void *context_data, alpm_question_t *question)
     }
 }
 
-static int print_package_removals(alpm_handle_t *handle)
+static int print_package_names(const alpm_list_t *packages, const char *kind)
 {
-    for (const alpm_list_t *item = alpm_trans_get_remove(handle);
+    for (const alpm_list_t *item = packages;
          item != NULL;
          item = item->next) {
         alpm_pkg_t *package = item->data;
@@ -180,7 +181,8 @@ static int print_package_removals(alpm_handle_t *handle)
         if (package == NULL) {
             fprintf(
                 stderr,
-                "package-removals-helper: invalid package in removal list\n"
+                "package-removals-helper: invalid package in %s list\n",
+                kind
             );
             return -1;
         }
@@ -190,7 +192,8 @@ static int print_package_removals(alpm_handle_t *handle)
         if (name == NULL || *name == '\0') {
             fprintf(
                 stderr,
-                "package-removals-helper: package without a valid name\n"
+                "package-removals-helper: package without a valid name in %s list\n",
+                kind
             );
             return -1;
         }
@@ -240,9 +243,14 @@ static int parse_output_mode(int argc, char **argv, output_mode_t *mode)
         return 0;
     }
 
+    if (argc == 2 && strcmp(argv[1], "--additions") == 0) {
+        *mode = OUTPUT_ADDITIONS;
+        return 0;
+    }
+
     fprintf(
         stderr,
-        "usage: package-removals-helper [--replacements]\n"
+        "usage: package-removals-helper [--replacements|--additions]\n"
     );
     return -1;
 }
@@ -336,7 +344,11 @@ int main(int argc, char **argv)
         if (print_package_replacements(&question_context) != 0) {
             goto cleanup;
         }
-    } else if (print_package_removals(handle) != 0) {
+    } else if (mode == OUTPUT_ADDITIONS) {
+        if (print_package_names(alpm_trans_get_add(handle), "addition") != 0) {
+            goto cleanup;
+        }
+    } else if (print_package_names(alpm_trans_get_remove(handle), "removal") != 0) {
         goto cleanup;
     }
 
