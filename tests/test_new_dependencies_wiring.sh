@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016
 
 set -Eeuo pipefail
 
@@ -73,7 +74,7 @@ if grep -Fq 'pacman -Syu --print' "$TARGET"; then
     exit 1
 fi
 
-if grep -Fq 'decision_add \' <(
+if grep -Fq "decision_add \\" <(
     sed -n '/^simulate_transaction() {/,/^}/p' "$TARGET"
 ); then
     printf "Erreur : simulate_transaction contient encore une décision directe.\n" >&2
