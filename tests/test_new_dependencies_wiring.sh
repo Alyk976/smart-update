@@ -39,7 +39,10 @@ line_number() {
         | cut -d: -f1
 }
 
+assert_exact_line 'readonly PACKAGE_ADDITIONS_MODULE="${LIB_DIR}/package_additions.sh"'
+assert_exact_line 'source "$PACKAGE_ADDITIONS_MODULE"'
 assert_exact_line 'prepare_transaction_context() {'
+assert_exact_line '    if ! package_additions_collect "$PACKAGE_REMOVALS_HELPER"; then'
 assert_exact_line '    prepare_transaction_context'
 assert_exact_line '    engine_load_policies'
 assert_exact_line '    engine_run_policies'
@@ -62,6 +65,11 @@ fi
 
 if ((engine_run_line >= simulate_line)); then
     printf "Erreur : la journalisation de la simulation doit suivre l’exécution des politiques.\n" >&2
+    exit 1
+fi
+
+if grep -Fq 'pacman -Syu --print' "$TARGET"; then
+    printf "Erreur : la détection des nouvelles dépendances dépend encore de pacman --print.\n" >&2
     exit 1
 fi
 
