@@ -43,6 +43,7 @@ assert_contains 'readonly ENGINE_MODULE="${LIB_DIR}/engine.sh"'
 assert_contains 'readonly ARCH_NEWS_CONTEXT_MODULE="${LIB_DIR}/arch_news_context.sh"'
 assert_contains 'readonly PACKAGE_REMOVALS_MODULE="${LIB_DIR}/package_removals.sh"'
 assert_contains 'readonly PACKAGE_REPLACEMENTS_MODULE="${LIB_DIR}/package_replacements.sh"'
+assert_contains 'readonly PACKAGE_ADDITIONS_MODULE="${LIB_DIR}/package_additions.sh"'
 
 # Le helper natif installé doit vivre directement dans /usr/lib/smart-update.
 assert_contains '    readonly PACKAGE_REMOVALS_HELPER="${TOOLS_DIR}/package-removals-helper"'
