@@ -23,6 +23,7 @@ LIB_MODULES := \
 	lib/engine.sh \
 	lib/exit_codes.sh \
 	lib/logger.sh \
+	lib/package_additions.sh \
 	lib/package_removals.sh \
 	lib/package_replacements.sh \
 	lib/report.sh \
