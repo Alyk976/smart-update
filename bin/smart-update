@@ -34,6 +34,7 @@ readonly ENGINE_MODULE="${LIB_DIR}/engine.sh"
 readonly ARCH_NEWS_CONTEXT_MODULE="${LIB_DIR}/arch_news_context.sh"
 readonly PACKAGE_REMOVALS_MODULE="${LIB_DIR}/package_removals.sh"
 readonly PACKAGE_REPLACEMENTS_MODULE="${LIB_DIR}/package_replacements.sh"
+readonly PACKAGE_ADDITIONS_MODULE="${LIB_DIR}/package_additions.sh"
 
 if [[ -x "${TOOLS_DIR}/package-removals-helper/package-removals-helper" ]]; then
     readonly PACKAGE_REMOVALS_HELPER="${TOOLS_DIR}/package-removals-helper/package-removals-helper"
@@ -56,7 +57,8 @@ for required_module in \
     "$ENGINE_MODULE" \
     "$ARCH_NEWS_CONTEXT_MODULE" \
     "$PACKAGE_REMOVALS_MODULE" \
-    "$PACKAGE_REPLACEMENTS_MODULE"; do
+    "$PACKAGE_REPLACEMENTS_MODULE" \
+    "$PACKAGE_ADDITIONS_MODULE"; do
 
     if [[ ! -r "$required_module" ]]; then
         printf 'Module Smart Update absent : %s\n' "$required_module" >&2
@@ -84,6 +86,8 @@ source "$ARCH_NEWS_CONTEXT_MODULE"
 source "$PACKAGE_REMOVALS_MODULE"
 # shellcheck source=lib/package_replacements.sh
 source "$PACKAGE_REPLACEMENTS_MODULE"
+# shellcheck source=lib/package_additions.sh
+source "$PACKAGE_ADDITIONS_MODULE"
 
 decision_reset
 config_load "$CONFIG_FILE"
@@ -160,26 +164,30 @@ prepare_package_replacements_context() {
 }
 
 prepare_transaction_context() {
-    logger_info "Préparation du contexte de transaction Pacman."
-    local status planned_file installed_file new_packages_file
+    logger_info "Préparation du contexte de transaction libalpm."
+    local planned_file installed_file new_packages_file
     NEW_PACKAGES=()
     NEW_PACKAGES_ERROR=""
     TRANSACTION_SIMULATION=""
     planned_file=$(mktemp)
     installed_file=$(mktemp)
     new_packages_file=$(mktemp)
-    set +e
-    TRANSACTION_SIMULATION=$(LC_ALL=C pacman -Syu --print --print-format '%n %v %r' 2>&1)
-    status=$?
-    set -e
-    if ((status != 0)); then
-        NEW_PACKAGES_ERROR="La simulation Pacman a échoué."
+
+    if ! package_additions_collect "$PACKAGE_REMOVALS_HELPER"; then
+        NEW_PACKAGES_ERROR="Impossible d'analyser les ajouts de la transaction : ${PACKAGE_ADDITIONS_ERROR}"
         logger_error "$NEW_PACKAGES_ERROR"
-        printf '%s\n' "$TRANSACTION_SIMULATION" | tee -a "$LOG_FILE" "$BLOCKED_LOG"
         rm -f "$planned_file" "$installed_file" "$new_packages_file"
         return 0
     fi
-    printf '%s\n' "$TRANSACTION_SIMULATION" | awk 'NF == 3 && $1 ~ /^[a-zA-Z0-9@._+:-]+$/ {print $1}' | sort -u >"$planned_file"
+
+    if ((${#PACKAGE_ADDITIONS[@]} > 0)); then
+        printf '%s\n' "${PACKAGE_ADDITIONS[@]}" | sort -u >"$planned_file"
+        TRANSACTION_SIMULATION=$(printf '%s\n' "${PACKAGE_ADDITIONS[@]}")
+    else
+        : >"$planned_file"
+        TRANSACTION_SIMULATION="Aucun paquet ajouté ou mis à jour par la transaction."
+    fi
+
     pacman -Qq | sort -u >"$installed_file"
     comm -13 "$installed_file" "$planned_file" >"$new_packages_file"
     mapfile -t NEW_PACKAGES <"$new_packages_file"
@@ -199,7 +207,7 @@ persist_arch_news_context() {
 }
 
 simulate_transaction() {
-    { echo; echo "Simulation de transaction :"; printf '%s\n' "$TRANSACTION_SIMULATION"; echo; } >>"$LOG_FILE"
+    { echo; echo "Transaction libalpm — paquets ajoutés ou mis à jour :"; printf '%s\n' "$TRANSACTION_SIMULATION"; echo; } >>"$LOG_FILE"
 }
 
 enforce_final_decision() {
