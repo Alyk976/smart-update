@@ -2,7 +2,7 @@
 
 pkgname=smart-update-v2
 pkgver=1.0.0rc1
-pkgrel=1
+pkgrel=2
 pkgdesc="Deterministic policy-driven update decision engine for Arch Linux"
 arch=('x86_64')
 url="https://github.com/Alyk976/smart-update-v2"
@@ -11,7 +11,7 @@ depends=('bash' 'pacman' 'pacman-contrib' 'libxml2' 'systemd')
 makedepends=('gcc' 'git' 'make' 'pkgconf')
 backup=('etc/smart-update/smart-update.conf'
         'etc/smart-update/critical-packages.conf')
-source=("${pkgname}::git+ssh://git@github.com/Alyk976/smart-update-v2.git#commit=508a58b7baa8ef65fae272dc9579d46151789a44")
+source=("${pkgname}::git+ssh://git@github.com/Alyk976/smart-update-v2.git#commit=09c4a694a926e45948cd8592e85328351129e859")
 sha256sums=('SKIP')
 
 build() {
