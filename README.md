@@ -1,8 +1,8 @@
-# Smart Update v2
+# Smart Update
 
 > **Think first. Update safely.**
 
-Smart Update v2 is a deterministic, policy-driven update decision engine for Arch Linux.
+Smart Update is a deterministic, policy-driven update decision engine for Arch Linux.
 
 Instead of blindly running `pacman -Syu`, Smart Update inspects the system, prepares transaction context, evaluates safety policies and produces a final decision:
 
@@ -18,7 +18,7 @@ The core principle is simple:
 
 ## Current status
 
-Smart Update v2 is currently in the **v1.0 release-candidate phase**.
+Smart Update v1.0.0 is the first stable release of the project.
 
 The following areas are implemented and tested:
 
@@ -30,17 +30,19 @@ The following areas are implemented and tested:
 - foreign/AUR package reporting;
 - package-removal detection through libalpm;
 - package-replacement detection through libalpm;
+- package-addition detection through libalpm;
 - forced-overwrite guard;
 - new dependency detection;
 - audit and guarded operating modes;
 - structured logs and execution reports;
+- optional weekly log rotation;
 - centralized exit-code contract;
 - native system installation layout;
 - systemd service and daily timer;
 - automated installation tests using `DESTDIR`;
 - automated regression tests.
 
-The project currently has **31 automated tests** covering policies, wiring, runtime behavior, reports, system layout, installation and systemd integration.
+The project has **33 automated tests** covering policies, wiring, runtime behavior, reports, system layout, installation, log rotation and systemd integration.
 
 ---
 
@@ -59,7 +61,7 @@ Inspect removals
     ↓
 Inspect replacements
     ↓
-Simulate Pacman transaction
+Collect libalpm transaction additions
     ↓
 Run policies
     ↓
@@ -86,8 +88,8 @@ Requirements include Arch Linux, Bash, pacman, `pacman-contrib`, libalpm develop
 Clone the repository:
 
 ```bash
-git clone git@github.com:Alyk976/smart-update-v2.git
-cd smart-update-v2
+git clone https://github.com/Alyk976/smart-update.git
+cd smart-update
 ```
 
 Run the complete test suite before installing:
@@ -120,8 +122,12 @@ A normal system installation uses:
 /usr/lib/smart-update/package-removals-helper
 /etc/smart-update/smart-update.conf
 /etc/smart-update/critical-packages.conf
+/etc/logrotate.d/smart-update
 /usr/lib/systemd/system/smart-update.service
 /usr/lib/systemd/system/smart-update.timer
+/usr/lib/tmpfiles.d/smart-update.conf
+/usr/share/licenses/smart-update/LICENSE
+/usr/share/licenses/smart-update/NOTICE
 /var/lib/smart-update/
 /var/log/smart-update/
 /var/log/smart-update/reports/
@@ -274,9 +280,13 @@ Default:
 ALLOW_REPLACEMENTS="no"
 ```
 
-### New dependencies
+### Package additions and new dependencies
 
-The simulated transaction is compared with currently installed packages.
+The native helper reads the prepared libalpm transaction addition list through
+`alpm_trans_get_add()`. Smart Update compares those package names with the
+installed package database to identify packages and dependencies that would be
+introduced by the transaction. The Bash adapter for this context is
+`lib/package_additions.sh`.
 
 Default:
 
@@ -348,6 +358,11 @@ Smart Update currently performs neither automatic reboot nor automatic snapshot 
 ```
 
 Reports include system information, installed/foreign packages, policy decisions, detected critical packages, new dependencies, final verdict, public exit code and execution duration.
+
+The two append-only logs are covered by the optional configuration installed at
+`/etc/logrotate.d/smart-update`. When `logrotate` is installed, they are rotated
+weekly, eight rotations are retained, and old logs are compressed. Report files
+remain governed independently by `REPORT_RETENTION_DAYS=90`.
 
 Example final summary:
 
@@ -460,7 +475,7 @@ The automated suite already validates this installation method.
 ## Project architecture
 
 ```text
-smart-update-v2/
+smart-update/
 ├── bin/
 │   └── smart-update
 ├── config/
@@ -477,17 +492,23 @@ smart-update-v2/
 │   ├── engine.sh
 │   ├── exit_codes.sh
 │   ├── logger.sh
+│   ├── package_additions.sh
 │   ├── package_removals.sh
 │   ├── package_replacements.sh
 │   ├── report.sh
 │   └── system_checks.sh
+├── packaging/
+│   ├── smart-update.logrotate
+│   └── smart-update.tmpfiles
 ├── systemd/
 │   ├── smart-update.service
 │   └── smart-update.timer
 ├── tests/
 ├── tools/
 │   └── package-removals-helper/
+├── LICENSE
 ├── Makefile
+├── NOTICE
 └── README.md
 ```
 
@@ -511,17 +532,15 @@ Smart Update is intentionally tied to pacman/libalpm semantics and Arch Linux op
 
 ---
 
-## Release path
+## Release
 
-Before tagging `v1.0.0`, the remaining release work is focused on:
-
-- packaging through a native Arch `PKGBUILD`;
-- package installation/removal validation with `makepkg` / `pacman`;
-- final release metadata and license decision;
-- final clean release verification.
+Smart Update v1.0.0 is packaged through the native Arch `PKGBUILD`. Release
+validation covers the complete test suite, clean `makepkg` builds, package
+integrity through Pacman, systemd integration and non-destructive logrotate
+validation.
 
 ---
 
 ## License
 
-To be defined before the final `v1.0.0` release.
+Smart Update is licensed under the Apache License 2.0. See [`LICENSE`](LICENSE).

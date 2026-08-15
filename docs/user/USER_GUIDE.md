@@ -1,0 +1,116 @@
+# Smart Update — Guide utilisateur
+
+## Purpose
+
+Smart Update analyzes an Arch Linux update transaction before deciding whether
+installation is acceptable. It does not replace Pacman and does not override
+administrator policy.
+
+The default configuration uses `MODE="audit"`; this mode performs analysis and
+produces a report without installing packages.
+
+## Run an audit
+
+```bash
+sudo /usr/bin/smart-update
+rc=$?
+printf 'Smart Update exit code: %d\n' "$rc"
+```
+
+The most important controlled results are:
+
+- `0`: analysis completed normally;
+- `29`: a policy deliberately blocked installation;
+- any other non-zero code: a technical or configuration failure.
+
+A policy block is a successful safety outcome, not a crash.
+
+## Understand the decision
+
+Smart Update evaluates update count, critical packages, foreign/AUR packages,
+Arch News, removals, replacements, new packages and dependencies, and the
+forced-overwrite guard.
+
+Removals, replacements and additions come from the prepared libalpm transaction.
+New packages and dependencies are derived from its addition list and the local
+installed package database.
+
+The final verdict is one of:
+
+- `ALLOW`: no policy objected;
+- `WARNING`: review is recommended, but the decision gate permits continuation;
+- `BLOCK`: installation is forbidden.
+
+Even an allowed audit does not install packages. Installation is possible only
+in `guarded` mode and only after the final decision gate.
+
+## Configuration
+
+System configuration lives in:
+
+```text
+/etc/smart-update/smart-update.conf
+/etc/smart-update/critical-packages.conf
+```
+
+Edit configuration with `sudoedit` and retain restrictive permissions. Important
+safe defaults include:
+
+```bash
+MODE="audit"
+ALLOW_REMOVALS="no"
+ALLOW_NEW_DEPENDENCIES="no"
+ALLOW_REPLACEMENTS="no"
+ALLOW_OVERWRITE="no"
+AUTO_REBOOT="no"
+AUTO_SNAPSHOT="no"
+REPORT_RETENTION_DAYS=90
+```
+
+## Logs and reports
+
+```text
+/var/log/smart-update/smart-update.log
+/var/log/smart-update/blocked.log
+/var/log/smart-update/reports/
+```
+
+Reports contain the transaction summary, policy reasons, final verdict, public
+exit code and execution duration. Smart Update deletes only report files older
+than `REPORT_RETENTION_DAYS`, which defaults to 90 days.
+
+If the optional `logrotate` package is installed,
+`/etc/logrotate.d/smart-update` rotates the two logs weekly, keeps eight
+rotations and compresses old logs. It does not manage reports.
+
+## systemd automation
+
+Enable the daily timer only after reviewing manual audit results:
+
+```bash
+sudo systemctl enable --now smart-update.timer
+systemctl status smart-update.timer --no-pager -l
+```
+
+Disable automation without removing Smart Update:
+
+```bash
+sudo systemctl disable --now smart-update.timer
+```
+
+Exit code `29` is listed in `SuccessExitStatus` and therefore appears as a
+controlled service result. Consult both the service journal and the latest
+report when investigating an execution:
+
+```bash
+sudo journalctl -u smart-update.service --no-pager
+```
+
+## Operational safety
+
+- Read Arch News before approving updates that require manual intervention.
+- Review every package removal, replacement and addition.
+- Keep `audit` mode until repeated results are understood.
+- Never delete `/var/lib/pacman/db.lck` without checking for an active package
+  manager process.
+- Do not treat `WARNING` as equivalent to risk-free operation.

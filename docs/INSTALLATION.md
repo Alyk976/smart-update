@@ -1,6 +1,6 @@
-# Smart Update v2 — Installation and operations
+# Smart Update — Installation and operations
 
-This document describes source installation, validation, systemd activation and manual removal for Smart Update v2 on Arch Linux.
+This document describes package and source installation, validation, systemd activation and removal for Smart Update on Arch Linux.
 
 ## Prerequisites
 
@@ -18,6 +18,9 @@ Required tooling includes:
 - GNU make;
 - standard POSIX/GNU command-line utilities.
 
+`logrotate` is optional. When installed, it uses the configuration shipped by
+Smart Update to rotate the main and blocking-event logs.
+
 Before installation, validate the repository:
 
 ```bash
@@ -33,7 +36,7 @@ sudo make install
 sudo systemctl daemon-reload
 ```
 
-The build compiles the native libalpm transaction helper and installs Smart Update into the system layout.
+The build compiles the native libalpm transaction helper and installs Smart Update into the system layout. The helper exposes planned removals, replacements and additions from the prepared libalpm transaction; `lib/package_additions.sh` uses the additions to identify new packages and dependencies.
 
 Configuration files are created only when absent. Running `make install` again does not overwrite an existing administrator configuration under `/etc/smart-update/`.
 
@@ -48,8 +51,12 @@ The main installed paths are:
 /usr/lib/smart-update/package-removals-helper
 /etc/smart-update/smart-update.conf
 /etc/smart-update/critical-packages.conf
+/etc/logrotate.d/smart-update
 /usr/lib/systemd/system/smart-update.service
 /usr/lib/systemd/system/smart-update.timer
+/usr/lib/tmpfiles.d/smart-update.conf
+/usr/share/licenses/smart-update/LICENSE
+/usr/share/licenses/smart-update/NOTICE
 /var/lib/smart-update/
 /var/log/smart-update/
 /var/log/smart-update/reports/
@@ -64,6 +71,10 @@ Expected high-level permissions are:
 /usr/lib/smart-update/package-removals-helper 0755
 /etc/smart-update                            0750
 /etc/smart-update/*.conf                     0640
+/etc/logrotate.d/smart-update                0644
+/usr/lib/tmpfiles.d/smart-update.conf        0644
+/usr/share/licenses/smart-update/LICENSE     0644
+/usr/share/licenses/smart-update/NOTICE      0644
 /var/lib/smart-update                        0750
 /var/log/smart-update                        0750
 /var/log/smart-update/reports                0750
@@ -192,6 +203,12 @@ systemd journal:
 sudo journalctl -u smart-update.service --no-pager
 ```
 
+When the optional `logrotate` package is installed,
+`/etc/logrotate.d/smart-update` rotates both logs weekly, retains eight
+rotations, compresses old logs with `delaycompress`, and recreates logs as
+`0640 root:root`. Reports are not handled by logrotate and retain their
+independent 90-day policy through `REPORT_RETENTION_DAYS=90`.
+
 ## Configuration changes
 
 Edit:
@@ -231,7 +248,8 @@ Then confirm the configuration is still present and unchanged as intended.
 
 ## Manual removal
 
-Until the Arch package is finalized, manual removal can be performed explicitly.
+For a source installation, manual removal can be performed explicitly. A package
+installation should normally be removed with Pacman instead.
 
 First stop and disable the timer:
 
@@ -247,7 +265,10 @@ sudo rm -f /usr/bin/smart-update
 sudo rm -rf /usr/lib/smart-update
 sudo rm -f \
     /usr/lib/systemd/system/smart-update.service \
-    /usr/lib/systemd/system/smart-update.timer
+    /usr/lib/systemd/system/smart-update.timer \
+    /usr/lib/tmpfiles.d/smart-update.conf
+sudo rm -f /etc/logrotate.d/smart-update
+sudo rm -rf /usr/share/licenses/smart-update
 sudo systemctl daemon-reload
 ```
 

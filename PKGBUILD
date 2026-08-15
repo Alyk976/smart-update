@@ -1,18 +1,18 @@
 # Maintainer: Mahadi Alykitra <Alyk976@users.noreply.github.com>
 
-pkgname=smart-update-v2
-pkgver=1.0.0rc1
-pkgrel=3
+pkgname=smart-update
+pkgver=1.0.0
+pkgrel=1
 pkgdesc="Deterministic policy-driven update decision engine for Arch Linux"
 arch=('x86_64')
-url="https://github.com/Alyk976/smart-update-v2"
-license=('LicenseRef-Smart-Update-RC')
+url="https://github.com/Alyk976/smart-update"
+license=('Apache-2.0')
 depends=('bash' 'pacman' 'pacman-contrib' 'libxml2' 'systemd')
 optdepends=('logrotate: rotate Smart Update log files')
 makedepends=('gcc' 'git' 'make' 'pkgconf')
 backup=('etc/smart-update/smart-update.conf'
         'etc/smart-update/critical-packages.conf')
-source=("${pkgname}::git+ssh://git@github.com/Alyk976/smart-update-v2.git#commit=bf5b26ed28f9b68a1506836c0963d322a2316ce8")
+source=("${pkgname}::git+https://github.com/Alyk976/smart-update.git#commit=bf5b26ed28f9b68a1506836c0963d322a2316ce8")
 sha256sums=('SKIP')
 
 build() {
@@ -34,6 +34,4 @@ package() {
     install -Dm644 packaging/smart-update.tmpfiles \
         "$pkgdir/usr/lib/tmpfiles.d/smart-update.conf"
 
-    install -Dm644 LICENSE \
-        "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

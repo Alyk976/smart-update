@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # ==========================================
-# Smart Update v2
+# Smart Update
 # Decision Engine
 # ==========================================
 

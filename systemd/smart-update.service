@@ -1,6 +1,6 @@
 [Unit]
-Description=Smart Update v2 guarded Arch Linux update service
-Documentation=https://github.com/Alyk976/smart-update-v2
+Description=Smart Update guarded Arch Linux update service
+Documentation=https://github.com/Alyk976/smart-update
 Wants=network-online.target
 After=network-online.target
 

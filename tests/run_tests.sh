@@ -9,7 +9,7 @@ passed=0
 failed=0
 
 printf '====================================================\n'
-printf '          Smart Update v2 - Test Suite\n'
+printf '           Smart Update - Test Suite\n'
 printf '====================================================\n\n'
 
 for test in tests/test_*.sh; do

@@ -1,4 +1,4 @@
-# Smart Update v2 — Exit-code contract
+# Smart Update — Exit-code contract
 
 Smart Update exposes explicit process exit codes so administrators, scripts and systemd can distinguish normal completion, controlled policy blocking and technical failures.
 
@@ -59,7 +59,7 @@ As a result, a normal policy block can appear as:
 
 ```text
 Deactivated successfully.
-Finished Smart Update v2 guarded Arch Linux update service.
+Finished Smart Update guarded Arch Linux update service.
 ```
 
 while the Smart Update report still records:

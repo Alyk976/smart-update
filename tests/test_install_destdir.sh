@@ -72,6 +72,8 @@ assert_file /usr/lib/systemd/system/smart-update.timer
 assert_file /etc/smart-update/smart-update.conf
 assert_file /etc/smart-update/critical-packages.conf
 assert_file /etc/logrotate.d/smart-update
+assert_file /usr/share/licenses/smart-update/LICENSE
+assert_file /usr/share/licenses/smart-update/NOTICE
 
 assert_dir /usr/lib/smart-update
 assert_dir /usr/lib/smart-update/policies
@@ -101,6 +103,8 @@ assert_mode /etc/smart-update 750
 assert_mode /etc/smart-update/smart-update.conf 640
 assert_mode /etc/smart-update/critical-packages.conf 640
 assert_mode /etc/logrotate.d/smart-update 644
+assert_mode /usr/share/licenses/smart-update/LICENSE 644
+assert_mode /usr/share/licenses/smart-update/NOTICE 644
 assert_mode /var/lib/smart-update 750
 assert_mode /var/log/smart-update 750
 assert_mode /var/log/smart-update/reports 750
@@ -127,6 +131,8 @@ assert_same_file config/critical-packages.conf \
     /etc/smart-update/critical-packages.conf
 assert_same_file packaging/smart-update.logrotate \
     /etc/logrotate.d/smart-update
+assert_same_file LICENSE /usr/share/licenses/smart-update/LICENSE
+assert_same_file NOTICE /usr/share/licenses/smart-update/NOTICE
 
 [[ -s "$ROOTFS/usr/lib/smart-update/package-removals-helper" ]]
 [[ -x "$ROOTFS/usr/lib/smart-update/package-removals-helper" ]]
