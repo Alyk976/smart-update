@@ -17,6 +17,7 @@ aur_phase_reset() {
     AUR_INSTALLED_PACKAGES=()
     AUR_CONTEXT_ERROR=""
     AUR_FOREIGN_PACKAGES=()
+    AUR_UNKNOWN_FOREIGN=()
     UNKNOWN_FOREIGN_PACKAGES=()
     aur_updates_reset
 }

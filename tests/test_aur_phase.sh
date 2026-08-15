@@ -88,6 +88,10 @@ if grep -Eq 'foo-git|bar-beta|--devel' "$INSTALL_CALLS_FILE"; then
     printf 'Erreur : candidat AUR interdit transmis à yay.\n' >&2
     exit 1
 fi
+if grep -Eq 'paru-debug|yay-debug|local-private-package' "$INSTALL_CALLS_FILE"; then
+    printf 'Erreur : paquet Foreign inconnu transmis à yay -S.\n' >&2
+    exit 1
+fi
 [[ "$AUR_RESULT" == "INSTALLED" ]]
 
 # Pacman/libalpm mis à jour et yay devenu incompatible : phase différée,
