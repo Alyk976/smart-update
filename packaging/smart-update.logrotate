@@ -1,0 +1,9 @@
+/var/log/smart-update/smart-update.log /var/log/smart-update/blocked.log {
+    weekly
+    rotate 8
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 root root
+}

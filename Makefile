@@ -2,6 +2,7 @@ PREFIX ?= /usr
 SYSCONFDIR ?= /etc
 LOCALSTATEDIR ?= /var
 SYSTEMDUNITDIR ?= $(PREFIX)/lib/systemd/system
+LOGROTATEDIR := $(SYSCONFDIR)/logrotate.d
 
 BINDIR := $(PREFIX)/bin
 LIBDIR := $(PREFIX)/lib/smart-update
@@ -32,14 +33,14 @@ LIB_MODULES := \
 POLICIES := $(wildcard lib/policies/*.sh)
 SYSTEMD_UNITS := systemd/smart-update.service systemd/smart-update.timer
 
-.PHONY: all helper install install-bin install-lib install-config install-runtime install-systemd clean
+.PHONY: all helper install install-bin install-lib install-config install-runtime install-systemd install-logrotate clean
 
 all: helper
 
 helper:
 	$(MAKE) -C $(HELPER_DIR)
 
-install: helper install-bin install-lib install-config install-runtime install-systemd
+install: helper install-bin install-lib install-config install-runtime install-systemd install-logrotate
 
 install-bin:
 	install -Dm755 bin/smart-update "$(DESTDIR)$(BINDIR)/smart-update"
@@ -68,6 +69,11 @@ install-runtime:
 install-systemd:
 	install -d -m755 "$(DESTDIR)$(SYSTEMDUNITDIR)"
 	install -m644 $(SYSTEMD_UNITS) "$(DESTDIR)$(SYSTEMDUNITDIR)/"
+
+install-logrotate:
+	install -d -m755 "$(DESTDIR)$(LOGROTATEDIR)"
+	install -m644 packaging/smart-update.logrotate \
+		"$(DESTDIR)$(LOGROTATEDIR)/smart-update"
 
 clean:
 	$(MAKE) -C $(HELPER_DIR) clean

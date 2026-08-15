@@ -2,12 +2,13 @@
 
 pkgname=smart-update-v2
 pkgver=1.0.0rc1
-pkgrel=2
+pkgrel=3
 pkgdesc="Deterministic policy-driven update decision engine for Arch Linux"
 arch=('x86_64')
 url="https://github.com/Alyk976/smart-update-v2"
 license=('LicenseRef-Smart-Update-RC')
 depends=('bash' 'pacman' 'pacman-contrib' 'libxml2' 'systemd')
+optdepends=('logrotate: rotate Smart Update log files')
 makedepends=('gcc' 'git' 'make' 'pkgconf')
 backup=('etc/smart-update/smart-update.conf'
         'etc/smart-update/critical-packages.conf')
