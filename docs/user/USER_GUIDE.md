@@ -3,8 +3,9 @@
 ## Purpose
 
 Smart Update analyzes an Arch Linux update transaction before deciding whether
-installation is acceptable. It does not replace Pacman and does not override
-administrator policy.
+installation is acceptable, and in guarded mode it can install an allowed
+transaction. It does not replace Pacman and does not override administrator
+policy.
 
 The default configuration uses `MODE="audit"`; this mode performs analysis and
 produces a report without installing packages.
@@ -29,7 +30,9 @@ A policy block is a successful safety outcome, not a crash.
 
 Smart Update evaluates update count, critical packages, foreign/AUR packages,
 Arch News, removals, replacements, new packages and dependencies, and the
-forced-overwrite guard.
+forced-overwrite guard. It also rejects candidates from testing, staging,
+unstable or unknown repositories, VCS packages, and explicit pre-release
+versions.
 
 Removals, replacements and additions come from the prepared libalpm transaction.
 New packages and dependencies are derived from its addition list and the local
@@ -58,6 +61,7 @@ safe defaults include:
 
 ```bash
 MODE="audit"
+ALLOW_CRITICAL_UPDATES="yes"
 ALLOW_REMOVALS="no"
 ALLOW_NEW_DEPENDENCIES="no"
 ALLOW_REPLACEMENTS="no"
@@ -66,6 +70,17 @@ AUTO_REBOOT="no"
 AUTO_SNAPSHOT="no"
 REPORT_RETENTION_DAYS=90
 ```
+
+`ALLOW_CRITICAL_UPDATES="yes"` is the normal default. It permits a critical
+package only after it passes the stable-update policy; the critical policy then
+returns `WARNING`, so the event remains visible while guarded mode may proceed.
+An administrator can explicitly select `no` to force every critical update to
+`BLOCK`. An unstable critical candidate always remains `BLOCK`, because the
+stable-update policy cannot be bypassed by this setting.
+
+At this development stage, only stable official candidates from `core`,
+`extra` and `multilib` are eligible. Stable AUR updates through `yay` are
+planned for a later v1.1.0 phase and are not yet supported.
 
 ## Logs and reports
 

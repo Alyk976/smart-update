@@ -18,6 +18,22 @@ config_validate_mode() {
     esac
 }
 
+config_validate_yes_no() {
+    local variable_name="${1:-}"
+    local value="${!variable_name-}"
+
+    case "$value" in
+        yes | no)
+            return 0
+            ;;
+        *)
+            printf 'Invalid %s value: %s\n' \
+                "$variable_name" "${value:-undefined}" >&2
+            return 1
+            ;;
+    esac
+}
+
 config_validate_max_update_count() {
     if [[ ! "${MAX_UPDATE_COUNT:-}" =~ ^[0-9]+$ ]] \
         || ((MAX_UPDATE_COUNT <= 0)); then
@@ -29,16 +45,7 @@ config_validate_max_update_count() {
 }
 
 config_validate_arch_news_enabled() {
-    case "${CHECK_ARCH_NEWS:-}" in
-        yes | no)
-            return 0
-            ;;
-        *)
-            printf 'Invalid CHECK_ARCH_NEWS value: %s\n' \
-                "${CHECK_ARCH_NEWS:-undefined}" >&2
-            return 1
-            ;;
-    esac
+    config_validate_yes_no CHECK_ARCH_NEWS
 }
 
 config_validate_arch_news_limit() {
@@ -65,10 +72,15 @@ config_load() {
         return 1
     fi
 
+    # Une valeur héritée de l'environnement ou d'un chargement précédent
+    # ne doit pas masquer l'absence de ce paramètre obligatoire dans le fichier.
+    unset ALLOW_CRITICAL_UPDATES
+
     # shellcheck disable=SC1090
     source "$config_file"
 
     config_validate_mode || return 1
+    config_validate_yes_no ALLOW_CRITICAL_UPDATES || return 1
     config_validate_max_update_count || return 1
     config_validate_arch_news_enabled || return 1
     config_validate_arch_news_limit || return 1

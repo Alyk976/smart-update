@@ -16,9 +16,40 @@ The core principle is simple:
 
 ---
 
+## Trust by design
+
+Smart Update is an update tool first. Analysis and policy evaluation exist to
+make installation safer, not to replace installation. Its operating principle
+is:
+
+> **Analyze → Decide → Update**
+
+Smart Update is designed to:
+
+- install stable Arch Linux updates;
+- install stable security updates;
+- eventually update stable AUR packages through `yay` in v1.1.0;
+- refuse alpha, beta, RC, development, nightly, snapshot and VCS updates;
+- inspect removals, replacements and new dependencies;
+- never silently bypass safety policies;
+- stop safely when a transaction cannot be understood;
+- produce a report explaining what was installed, blocked or skipped.
+
+A Smart Update user should not have to wonder whether the tool will install a
+beta, silently ignore legitimate stable updates, bypass safety rules, or block
+normal stable updates forever. This design reduces avoidable risk while keeping
+the administrator responsible for system policy and operational review.
+
+---
+
 ## Current status
 
 Smart Update v1.0.0 is the first stable release of the project.
+
+Development toward v1.1.0 is adding fail-closed eligibility checks for stable
+official updates and policy-controlled handling of critical packages. Stable
+AUR support through `yay` is planned for a later v1.1.0 phase and is not yet
+implemented.
 
 The following areas are implemented and tested:
 
@@ -42,7 +73,9 @@ The following areas are implemented and tested:
 - automated installation tests using `DESTDIR`;
 - automated regression tests.
 
-The project has **33 automated tests** covering policies, wiring, runtime behavior, reports, system layout, installation, log rotation and systemd integration.
+The development suite currently has **35 automated tests** covering policies,
+wiring, runtime behavior, reports, system layout, installation, log rotation
+and systemd integration.
 
 ---
 
@@ -62,6 +95,10 @@ Inspect removals
 Inspect replacements
     ↓
 Collect libalpm transaction additions
+    ↓
+Collect repository/package/version metadata
+    ↓
+Reject non-stable or non-official candidates
     ↓
 Run policies
     ↓
@@ -188,6 +225,7 @@ Policies are loaded dynamically from `lib/policies/` during development and `/us
 | Policy | Purpose |
 |---|---|
 | `update_count` | Blocks or allows based on the configured maximum update count |
+| `stable_updates` | Allows only stable candidates from `core`, `extra` and `multilib` |
 | `critical_updates` | Detects updates to packages listed as critical |
 | `foreign_packages` | Reports foreign/AUR packages without updating them |
 | `arch_news` | Surfaces new official Arch Linux announcements |
@@ -217,9 +255,24 @@ Critical packages are configured in:
 /etc/smart-update/critical-packages.conf
 ```
 
-When one or more configured critical packages are included in the update set, the critical-update policy may block the transaction according to the current safety contract.
+When one or more configured critical packages are included in the update set,
+`ALLOW_CRITICAL_UPDATES="yes"`, the default, allows a stable critical update to
+continue as `WARNING`, never silently as `ALLOW`. An administrator can select
+the ultra-conservative `no` setting to block every critical update. Stability
+is evaluated first, so an unstable critical update remains `BLOCK` regardless
+of this setting.
 
 Typical examples in a workstation environment include the kernel and other infrastructure-sensitive packages.
+
+## Stable update eligibility
+
+Before any installation, Smart Update reads repository, package name and
+version directly from the prepared libalpm transaction. `core`, `extra` and
+`multilib` candidates are eligible when their name and version contain no
+explicit development marker. Testing, staging and unstable repositories,
+third-party repositories, VCS package suffixes and explicit alpha, beta, RC,
+pre, preview, dev, nightly or snapshot versions are blocked. The `-bin` suffix
+and an isolated `r123` revision do not by themselves make a package unstable.
 
 ---
 

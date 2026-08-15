@@ -26,9 +26,11 @@ LIB_MODULES := \
 	lib/exit_codes.sh \
 	lib/logger.sh \
 	lib/package_additions.sh \
+	lib/package_candidates.sh \
 	lib/package_removals.sh \
 	lib/package_replacements.sh \
 	lib/report.sh \
+	lib/stability.sh \
 	lib/system_checks.sh
 
 POLICIES := $(wildcard lib/policies/*.sh)

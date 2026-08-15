@@ -15,7 +15,8 @@
 typedef enum {
     OUTPUT_REMOVALS,
     OUTPUT_REPLACEMENTS,
-    OUTPUT_ADDITIONS
+    OUTPUT_ADDITIONS,
+    OUTPUT_ADDITIONS_META
 } output_mode_t;
 
 typedef struct {
@@ -207,6 +208,47 @@ static int print_package_names(const alpm_list_t *packages, const char *kind)
     return 0;
 }
 
+static int metadata_field_is_valid(const char *field)
+{
+    return field != NULL && *field != '\0' && strchr(field, '|') == NULL;
+}
+
+static int print_package_metadata(const alpm_list_t *packages)
+{
+    for (const alpm_list_t *item = packages;
+         item != NULL;
+         item = item->next) {
+        alpm_pkg_t *package = item->data;
+
+        if (package == NULL) {
+            fprintf(stderr, "package-removals-helper: invalid addition metadata\n");
+            return -1;
+        }
+
+        alpm_db_t *database = alpm_pkg_get_db(package);
+        const char *repository = database == NULL ? NULL : alpm_db_get_name(database);
+        const char *name = alpm_pkg_get_name(package);
+        const char *version = alpm_pkg_get_version(package);
+
+        if (!metadata_field_is_valid(repository)
+            || !metadata_field_is_valid(name)
+            || !metadata_field_is_valid(version)) {
+            fprintf(
+                stderr,
+                "package-removals-helper: invalid addition metadata field\n"
+            );
+            return -1;
+        }
+
+        if (printf("%s|%s|%s\n", repository, name, version) < 0) {
+            fprintf(stderr, "package-removals-helper: stdout write failed\n");
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 static int print_package_replacements(const question_context_t *context)
 {
     for (const alpm_list_t *item = context->replacements;
@@ -248,9 +290,15 @@ static int parse_output_mode(int argc, char **argv, output_mode_t *mode)
         return 0;
     }
 
+    if (argc == 2 && strcmp(argv[1], "--additions-meta") == 0) {
+        *mode = OUTPUT_ADDITIONS_META;
+        return 0;
+    }
+
     fprintf(
         stderr,
-        "usage: package-removals-helper [--replacements|--additions]\n"
+        "usage: package-removals-helper "
+        "[--replacements|--additions|--additions-meta]\n"
     );
     return -1;
 }
@@ -346,6 +394,10 @@ int main(int argc, char **argv)
         }
     } else if (mode == OUTPUT_ADDITIONS) {
         if (print_package_names(alpm_trans_get_add(handle), "addition") != 0) {
+            goto cleanup;
+        }
+    } else if (mode == OUTPUT_ADDITIONS_META) {
+        if (print_package_metadata(alpm_trans_get_add(handle)) != 0) {
             goto cleanup;
         }
     } else if (print_package_names(alpm_trans_get_remove(handle), "removal") != 0) {

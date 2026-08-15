@@ -17,7 +17,14 @@ $(TARGET): $(SOURCES)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $(SOURCES) $(LDLIBS)
 
 check: $(TARGET)
-	./$(TARGET)
+	./$(TARGET) >/dev/null
+	./$(TARGET) --replacements >/dev/null
+	./$(TARGET) --additions >/dev/null
+	./$(TARGET) --additions-meta >/dev/null
+	@if ./$(TARGET) --unknown >/dev/null 2>&1; then \
+		echo "unknown argument unexpectedly accepted" >&2; \
+		exit 1; \
+	fi
 
 clean:
 	rm -f $(TARGET)

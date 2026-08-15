@@ -22,7 +22,8 @@ Collect available updates and Arch News context
 Prepare the libalpm transaction context
     ├── removals
     ├── replacements
-    └── additions
+    ├── additions
+    └── repository/package/version metadata
     ↓
 Derive new packages and dependencies from additions
     ↓
@@ -44,9 +45,12 @@ Finalize the report
 - `lib/system_checks.sh` performs preflight safety checks.
 - `lib/arch_news*.sh` collects Arch News and maintains its persistent state.
 - `tools/package-removals-helper/` prepares a transaction with libalpm and
-  exposes removals, replacements and additions.
+  exposes removals, replacements, additions and candidate metadata without
+  committing the transaction.
 - `lib/package_removals.sh`, `lib/package_replacements.sh` and
   `lib/package_additions.sh` validate and normalize the helper output.
+- `lib/package_candidates.sh` parses candidate metadata fail-closed, while
+  `lib/stability.sh` provides deterministic, side-effect-free classification.
 - `lib/policies/*.sh` implement deterministic policy decisions without causing
   installation or process termination.
 - `lib/engine.sh` runs policies and records their results.
@@ -65,6 +69,13 @@ replacements. New packages and dependencies are obtained by comparing the
 addition names with the installed package database; they are not inferred from
 text output produced by a separate Pacman simulation.
 
+For update eligibility, the same prepared addition objects expose their owning
+sync database, package name and version as `repository|package|version`.
+Only stable candidates from `core`, `extra` and `multilib` are currently
+eligible. Testing, staging, unstable, third-party, VCS and explicit pre-release
+candidates fail closed before the decision gate. This metadata boundary is also
+the foundation for a later, isolated Foreign/AUR integration.
+
 ## Filesystem and services
 
 Immutable application files live under `/usr`, administrator configuration
@@ -82,6 +93,10 @@ logs; report retention remains part of Smart Update itself.
 - No policy installs packages or bypasses the central decision module.
 - A `BLOCK` always prevents `pacman -Syu`.
 - Invalid or missing transaction context fails closed.
+- Stable critical packages produce `WARNING` and remain installable by default.
+  An administrator may set `ALLOW_CRITICAL_UPDATES="no"` for an
+  ultra-conservative `BLOCK`; the stability policy always takes precedence, so
+  an unstable critical candidate remains blocked.
 - Configuration, state, logs and reports use restrictive permissions.
 - Smart Update never removes a Pacman lock automatically.
 - No automatic reboot, snapshot or forced overwrite is performed.

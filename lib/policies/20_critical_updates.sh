@@ -28,13 +28,29 @@ policy_run() {
         fi
     done
 
+    POLICY_DETAILS=("${CRITICAL_UPDATES[@]}")
+
+    if [[ "${ALLOW_CRITICAL_UPDATES:-}" != "yes"
+        && "${ALLOW_CRITICAL_UPDATES:-}" != "no" ]]; then
+        POLICY_RESULT="BLOCK"
+        POLICY_REASON="Configuration ALLOW_CRITICAL_UPDATES invalide."
+        return
+    fi
+
     if ((${#CRITICAL_UPDATES[@]} == 0)); then
         POLICY_RESULT="ALLOW"
         POLICY_REASON="Aucune mise à jour critique détectée."
         return
     fi
 
-    POLICY_RESULT="BLOCK"
-    POLICY_REASON="Mises à jour critiques détectées :"
-    POLICY_DETAILS=("${CRITICAL_UPDATES[@]}")
+    case "${ALLOW_CRITICAL_UPDATES:-}" in
+        no)
+            POLICY_RESULT="BLOCK"
+            POLICY_REASON="Mises à jour critiques bloquées par la configuration :"
+            ;;
+        yes)
+            POLICY_RESULT="WARNING"
+            POLICY_REASON="Mises à jour critiques stables autorisées avec avertissement :"
+            ;;
+    esac
 }

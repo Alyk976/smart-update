@@ -64,8 +64,11 @@ assert_file /usr/lib/smart-update/config.sh
 assert_file /usr/lib/smart-update/engine.sh
 assert_file /usr/lib/smart-update/exit_codes.sh
 assert_file /usr/lib/smart-update/package_additions.sh
+assert_file /usr/lib/smart-update/package_candidates.sh
+assert_file /usr/lib/smart-update/stability.sh
 assert_file /usr/lib/smart-update/package-removals-helper
 assert_file /usr/lib/smart-update/policies/10_update_count.sh
+assert_file /usr/lib/smart-update/policies/15_stable_updates.sh
 assert_file /usr/lib/smart-update/policies/80_new_dependencies.sh
 assert_file /usr/lib/systemd/system/smart-update.service
 assert_file /usr/lib/systemd/system/smart-update.timer
@@ -93,8 +96,11 @@ assert_mode /usr/lib/smart-update/config.sh 644
 assert_mode /usr/lib/smart-update/engine.sh 644
 assert_mode /usr/lib/smart-update/exit_codes.sh 644
 assert_mode /usr/lib/smart-update/package_additions.sh 644
+assert_mode /usr/lib/smart-update/package_candidates.sh 644
+assert_mode /usr/lib/smart-update/stability.sh 644
 assert_mode /usr/lib/smart-update/policies 755
 assert_mode /usr/lib/smart-update/policies/10_update_count.sh 644
+assert_mode /usr/lib/smart-update/policies/15_stable_updates.sh 644
 assert_mode /usr/lib/smart-update/policies/80_new_dependencies.sh 644
 assert_mode /usr/lib/smart-update/package-removals-helper 755
 assert_mode /usr/lib/systemd/system/smart-update.service 644
@@ -117,8 +123,12 @@ assert_same_file lib/config.sh /usr/lib/smart-update/config.sh
 assert_same_file lib/engine.sh /usr/lib/smart-update/engine.sh
 assert_same_file lib/exit_codes.sh /usr/lib/smart-update/exit_codes.sh
 assert_same_file lib/package_additions.sh /usr/lib/smart-update/package_additions.sh
+assert_same_file lib/package_candidates.sh /usr/lib/smart-update/package_candidates.sh
+assert_same_file lib/stability.sh /usr/lib/smart-update/stability.sh
 assert_same_file lib/policies/10_update_count.sh \
     /usr/lib/smart-update/policies/10_update_count.sh
+assert_same_file lib/policies/15_stable_updates.sh \
+    /usr/lib/smart-update/policies/15_stable_updates.sh
 assert_same_file lib/policies/80_new_dependencies.sh \
     /usr/lib/smart-update/policies/80_new_dependencies.sh
 assert_same_file systemd/smart-update.service \
@@ -127,6 +137,8 @@ assert_same_file systemd/smart-update.timer \
     /usr/lib/systemd/system/smart-update.timer
 assert_same_file config/smart-update.conf \
     /etc/smart-update/smart-update.conf
+grep -F -x -q 'ALLOW_CRITICAL_UPDATES="yes"' \
+    "$ROOTFS/etc/smart-update/smart-update.conf"
 assert_same_file config/critical-packages.conf \
     /etc/smart-update/critical-packages.conf
 assert_same_file packaging/smart-update.logrotate \

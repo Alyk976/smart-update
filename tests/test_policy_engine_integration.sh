@@ -39,10 +39,18 @@ source "$PROJECT_ROOT/lib/decision.sh"
 
 # shellcheck source=lib/engine.sh
 source "$PROJECT_ROOT/lib/engine.sh"
+# shellcheck source=lib/stability.sh
+source "$PROJECT_ROOT/lib/stability.sh"
 
 reset_context() {
     UPDATE_PACKAGES=(nano)
     MAX_UPDATE_COUNT=500
+    ALLOW_CRITICAL_UPDATES="no"
+
+    PACKAGE_CANDIDATES_ERROR=""
+    PACKAGE_CANDIDATE_REPOS=(core)
+    PACKAGE_CANDIDATE_NAMES=(nano)
+    PACKAGE_CANDIDATE_VERSIONS=(8.0-1)
 
     MOCK_FOREIGN_PACKAGES=""
     export MOCK_FOREIGN_PACKAGES
@@ -114,8 +122,27 @@ fi
 
 [[ "$rc" -eq 1 ]]
 
-grep -Fq "Policy critical_updates: Mises à jour critiques détectées :" "$LOG_FILE"
+grep -Fq "Policy critical_updates: Mises à jour critiques bloquées par la configuration :" "$LOG_FILE"
 grep -Fq "Policy foreign_packages: 1 paquet(s) étranger(s)/AUR détecté(s)." "$LOG_FILE"
 grep -Fq "Policy new_dependencies: 1 nouveau(x) paquet(s) ou nouvelle(s) dépendance(s) détecté(s)." "$LOG_FILE"
+
+# Scénario 4 : autoriser les critiques ne contourne jamais la stabilité.
+reset_context
+UPDATE_PACKAGES=(linux)
+ALLOW_CRITICAL_UPDATES="yes"
+PACKAGE_CANDIDATE_REPOS=(core-testing)
+PACKAGE_CANDIDATE_NAMES=(linux)
+PACKAGE_CANDIDATE_VERSIONS=(6.13.0-rc2)
+
+engine_run_policies >/dev/null
+
+[[ "$DECISION_FINAL" == "BLOCK" ]]
+grep -Fq "Policy stable_updates: Candidats de mise à jour non stables ou non officiels détectés :" "$LOG_FILE"
+grep -Fq "Policy critical_updates: Mises à jour critiques stables autorisées avec avertissement :" "$LOG_FILE"
+
+if decision_allows_installation; then
+    printf 'Erreur : un paquet critique instable franchit le Decision Gate.\n' >&2
+    exit 1
+fi
 
 printf "Tous les tests d’intégration du moteur de politiques ont réussi.\n"

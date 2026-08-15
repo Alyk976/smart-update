@@ -35,6 +35,7 @@ assert_exact_line '    prepare_arch_news_context'
 assert_exact_line '    prepare_package_removals_context'
 assert_exact_line '    prepare_package_replacements_context'
 assert_exact_line '    prepare_transaction_context'
+assert_exact_line '    prepare_package_candidates_context'
 assert_exact_line '    engine_load_policies'
 assert_exact_line '    engine_run_policies'
 assert_exact_line '    simulate_transaction'
@@ -48,6 +49,7 @@ arch_news_line=$(line_number '    prepare_arch_news_context')
 removals_line=$(line_number '    prepare_package_removals_context')
 replacements_line=$(line_number '    prepare_package_replacements_context')
 transaction_line=$(line_number '    prepare_transaction_context')
+candidates_line=$(line_number '    prepare_package_candidates_context')
 engine_load_line=$(line_number '    engine_load_policies')
 engine_run_line=$(line_number '    engine_run_policies')
 simulation_line=$(line_number '    simulate_transaction')
@@ -63,6 +65,7 @@ for current in \
     "$removals_line" \
     "$replacements_line" \
     "$transaction_line" \
+    "$candidates_line" \
     "$engine_load_line" \
     "$engine_run_line" \
     "$simulation_line" \
@@ -127,5 +130,14 @@ decision_allows_installation
 decision_reset
 decision_allows_installation
 [[ "$DECISION_FINAL" == "ALLOW" ]]
+
+# Le mode audit retourne avant l'unique invocation de Pacman dans
+# install_updates, quelle que soit la décision autorisable.
+audit_guard_line=$(grep -n -m 1 'if \[\[ "$MODE" == "audit" \]\]' "$TARGET" | cut -d: -f1)
+pacman_install_line=$(grep -n -m 1 'pacman -Syu --needed' "$TARGET" | cut -d: -f1)
+if ((audit_guard_line >= pacman_install_line)); then
+    printf 'Erreur : le mode audit peut atteindre Pacman.\n' >&2
+    exit 1
+fi
 
 printf "Tous les tests d’intégration du workflow principal ont réussi.\n"
