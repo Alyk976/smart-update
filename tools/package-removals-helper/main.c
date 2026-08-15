@@ -16,7 +16,8 @@ typedef enum {
     OUTPUT_REMOVALS,
     OUTPUT_REPLACEMENTS,
     OUTPUT_ADDITIONS,
-    OUTPUT_ADDITIONS_META
+    OUTPUT_ADDITIONS_META,
+    OUTPUT_QUESTIONS
 } output_mode_t;
 
 typedef struct {
@@ -24,6 +25,26 @@ typedef struct {
     alpm_list_t *replacements;
     int collection_failed;
 } question_context_t;
+
+static void record_question(question_context_t *context, const char *type,
+        const char *field1, const char *field2, const char *field3,
+        const char *field4)
+{
+    if (context == NULL || context->mode != OUTPUT_QUESTIONS) {
+        return;
+    }
+    const char *fields[] = {type, field1, field2, field3, field4};
+    for (size_t index = 0; index < 5; index++) {
+        if (fields[index] == NULL || strchr(fields[index], '|') != NULL
+                || strpbrk(fields[index], "\r\n") != NULL) {
+            context->collection_failed = 1;
+            return;
+        }
+    }
+    if (printf("%s|%s|%s|%s|%s\n", type, field1, field2, field3, field4) < 0) {
+        context->collection_failed = 1;
+    }
+}
 
 static int repository_name_is_valid(const char *name)
 {
@@ -149,25 +170,49 @@ static void answer_question(void *context_data, alpm_question_t *question)
                 && collect_replacement(context, question) != 0) {
                 context->collection_failed = 1;
             }
+            record_question(context, "REPLACE_PKG",
+                    alpm_pkg_get_name(question->replace.oldpkg),
+                    alpm_pkg_get_version(question->replace.oldpkg),
+                    alpm_pkg_get_name(question->replace.newpkg),
+                    alpm_pkg_get_version(question->replace.newpkg));
             question->replace.replace = 1;
             break;
         case ALPM_QUESTION_CONFLICT_PKG:
+            record_question(context, "CONFLICT_PKG",
+                    alpm_pkg_get_name(question->conflict.conflict->package1),
+                    alpm_pkg_get_version(question->conflict.conflict->package1),
+                    alpm_pkg_get_name(question->conflict.conflict->package2),
+                    alpm_pkg_get_version(question->conflict.conflict->package2));
             question->conflict.remove = 1;
             break;
         case ALPM_QUESTION_SELECT_PROVIDER:
+            record_question(context, "SELECT_PROVIDER", "", "", "", "");
             question->select_provider.use_index = 0;
             break;
         case ALPM_QUESTION_INSTALL_IGNOREPKG:
+            record_question(context, "INSTALL_IGNOREPKG",
+                    alpm_pkg_get_name(question->install_ignorepkg.pkg),
+                    alpm_pkg_get_version(question->install_ignorepkg.pkg), "", "");
             question->install_ignorepkg.install = 0;
             break;
         case ALPM_QUESTION_REMOVE_PKGS:
-            question->remove_pkgs.skip = 0;
+            record_question(context, "REMOVE_PKGS", "", "", "", "");
+            question->remove_pkgs.skip = context != NULL
+                && context->mode == OUTPUT_QUESTIONS;
             break;
         case ALPM_QUESTION_CORRUPTED_PKG:
+            record_question(context, "CORRUPTED_PKG",
+                    question->corrupted.filepath, "", "", "");
             question->corrupted.remove = 0;
             break;
         case ALPM_QUESTION_IMPORT_KEY:
+            record_question(context, "IMPORT_KEY",
+                    question->import_key.fingerprint, "", "", "");
             question->import_key.import = 0;
+            break;
+        default:
+            record_question(context, "UNKNOWN", "", "", "", "");
+            question->any.answer = 0;
             break;
     }
 }
@@ -294,11 +339,15 @@ static int parse_output_mode(int argc, char **argv, output_mode_t *mode)
         *mode = OUTPUT_ADDITIONS_META;
         return 0;
     }
+    if (argc == 2 && strcmp(argv[1], "--questions") == 0) {
+        *mode = OUTPUT_QUESTIONS;
+        return 0;
+    }
 
     fprintf(
         stderr,
         "usage: package-removals-helper "
-        "[--replacements|--additions|--additions-meta]\n"
+        "[--replacements|--additions|--additions-meta|--questions]\n"
     );
     return -1;
 }
@@ -393,7 +442,7 @@ int main(int argc, char **argv)
     if (question_context.collection_failed) {
         fprintf(
             stderr,
-            "package-removals-helper: replacement collection failed\n"
+            "package-removals-helper: question collection failed\n"
         );
         goto cleanup;
     }
@@ -410,6 +459,8 @@ int main(int argc, char **argv)
         if (print_package_metadata(alpm_trans_get_add(handle)) != 0) {
             goto cleanup;
         }
+    } else if (mode == OUTPUT_QUESTIONS) {
+        /* Questions were emitted by the read-only preparation callback. */
     } else if (print_package_names(alpm_trans_get_remove(handle), "removal") != 0) {
         goto cleanup;
     }

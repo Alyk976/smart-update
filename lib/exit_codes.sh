@@ -17,6 +17,8 @@ readonly EXIT_POLICY_BLOCK=29
 readonly EXIT_INVALID_FINAL_DECISION=30
 readonly EXIT_AUR_DISCOVERY_FAILED=31
 readonly EXIT_AUR_UPDATE_FAILED=32
+readonly EXIT_OFFICIAL_TRANSACTION_DRIFT=33
+readonly EXIT_MANUAL_TRANSACTION_REQUIRED=34
 
 exit_code_label() {
     case "${1:-}" in
@@ -33,6 +35,8 @@ exit_code_label() {
         30) printf '%s\n' 'INVALID_FINAL_DECISION' ;;
         31) printf '%s\n' 'AUR_DISCOVERY_FAILED' ;;
         32) printf '%s\n' 'AUR_UPDATE_FAILED' ;;
+        33) printf '%s\n' 'OFFICIAL_TRANSACTION_DRIFT' ;;
+        34) printf '%s\n' 'MANUAL_TRANSACTION_REQUIRED' ;;
         *)  printf '%s\n' 'UNKNOWN' ;;
     esac
 }
@@ -52,6 +56,8 @@ exit_code_description() {
         30) printf '%s\n' 'Décision finale invalide.' ;;
         31) printf '%s\n' 'Échec de la découverte ou validation AUR.' ;;
         32) printf '%s\n' 'La phase officielle a réussi mais la mise à jour AUR a échoué.' ;;
+        33) printf '%s\n' 'La transaction officielle a changé avant installation.' ;;
+        34) printf '%s\n' 'La transaction nécessite une exécution manuelle.' ;;
         *)  printf '%s\n' 'Code de sortie inconnu.' ;;
     esac
 }

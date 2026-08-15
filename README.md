@@ -40,6 +40,13 @@ beta, silently ignore legitimate stable updates, bypass safety rules, or block
 normal stable updates forever. This design reduces avoidable risk while keeping
 the administrator responsible for system policy and operational review.
 
+Smart Update v1.1.0 automatically installs ordinary stable transactions.
+Transactions requiring package-manager choices such as conflict removals,
+replacements or provider selection are analyzed but deferred for manual
+execution. Smart Update does not globally answer Pacman transaction questions.
+If the transaction changes between analysis and the final pre-installation
+check, Smart Update aborts and analyzes again instead of guessing.
+
 Smart Update verifies that the configured AUR helper is operational again
 after the official system upgrade before starting any AUR installation. If an
 official pacman/libalpm update makes yay temporarily unavailable, Smart Update
@@ -211,13 +218,17 @@ This is the default and recommended mode during validation.
 MODE="guarded"
 ```
 
-Guarded mode may execute:
+For an ordinary transaction, guarded mode may execute Pacman with a
+conservative non-interactive question mask:
 
 ```bash
-pacman -Syu --needed
+pacman -Syu --ask=75
 ```
 
-but only after the final decision gate allows the transaction.
+but only after both the policy gate and the execution capability gate allow
+the transaction. The mask does not authorize conflict removals; transactions
+already known to require an interactive Pacman choice are reported as
+`MANUAL_TRANSACTION_REQUIRED` before Pacman starts.
 
 A final `BLOCK` always prevents installation.
 

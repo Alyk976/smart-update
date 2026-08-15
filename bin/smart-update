@@ -43,6 +43,7 @@ readonly PACKAGE_ADDITIONS_MODULE="${LIB_DIR}/package_additions.sh"
 readonly PACKAGE_CANDIDATES_MODULE="${LIB_DIR}/package_candidates.sh"
 readonly STABILITY_MODULE="${LIB_DIR}/stability.sh"
 readonly VERSION_MODULE="${LIB_DIR}/version.sh"
+readonly TRANSACTION_QUESTIONS_MODULE="${LIB_DIR}/transaction_questions.sh"
 
 if [[ -x "${TOOLS_DIR}/package-removals-helper/package-removals-helper" ]]; then
     readonly PACKAGE_REMOVALS_HELPER="${TOOLS_DIR}/package-removals-helper/package-removals-helper"
@@ -76,6 +77,7 @@ for required_module in \
     "$PACKAGE_ADDITIONS_MODULE" \
     "$PACKAGE_CANDIDATES_MODULE" \
     "$STABILITY_MODULE" \
+    "$TRANSACTION_QUESTIONS_MODULE" \
     "$VERSION_MODULE"; do
 
     if [[ ! -r "$required_module" ]]; then
@@ -120,6 +122,8 @@ source "$PACKAGE_ADDITIONS_MODULE"
 source "$PACKAGE_CANDIDATES_MODULE"
 # shellcheck source=lib/stability.sh
 source "$STABILITY_MODULE"
+# shellcheck source=lib/transaction_questions.sh
+source "$TRANSACTION_QUESTIONS_MODULE"
 # shellcheck source=lib/version.sh
 source "$VERSION_MODULE"
 
@@ -148,6 +152,7 @@ NEW_PACKAGES_ERROR=""
 TRANSACTION_SIMULATION=""
 OFFICIAL_RESULT="NOT_RUN"
 OFFICIAL_INSTALLED_COUNT=0
+APPROVED_TRANSACTION_SNAPSHOT=""
 
 finalize_report_on_exit() {
     local exit_code=$?
@@ -246,6 +251,27 @@ prepare_package_candidates_context() {
     fi
 }
 
+prepare_transaction_questions_context() {
+    logger_info "Analyse des questions interactives de la transaction libalpm."
+    if ! transaction_questions_collect "$PACKAGE_REMOVALS_HELPER"; then
+        logger_warning "$TRANSACTION_QUESTIONS_ERROR"
+    fi
+    if [[ "$OFFICIAL_EXECUTION_CAPABILITY" == "MANUAL_REQUIRED" ]]; then
+        logger_warning "Transaction acceptable par les policies mais exécution manuelle requise."
+    fi
+}
+
+revalidate_official_transaction() {
+    local current_snapshot
+    package_removals_collect "$PACKAGE_REMOVALS_HELPER" || return 1
+    package_replacements_collect "$PACKAGE_REMOVALS_HELPER" || return 1
+    package_additions_collect "$PACKAGE_REMOVALS_HELPER" || return 1
+    package_candidates_collect "$PACKAGE_REMOVALS_HELPER" || return 1
+    transaction_questions_collect "$PACKAGE_REMOVALS_HELPER" || return 1
+    current_snapshot=$(transaction_snapshot)
+    [[ "$current_snapshot" == "$APPROVED_TRANSACTION_SNAPSHOT" ]]
+}
+
 prepare_aur_context() {
     logger_info "Analyse des paquets AUR et Foreign."
     if ! aur_phase_prepare; then
@@ -281,6 +307,17 @@ enforce_final_decision() {
     esac
 }
 
+enforce_execution_capability() {
+    if [[ "$OFFICIAL_EXECUTION_CAPABILITY" == "MANUAL_REQUIRED" ]]; then
+        OFFICIAL_RESULT="MANUAL_TRANSACTION_REQUIRED"
+        AUR_RESULT="DEFERRED_OFFICIAL_UPDATE_REQUIRED"
+        AUR_PHASE_ERROR="Official update requires manual package-manager decisions."
+        logger_warning "La transaction nécessite une décision Pacman interactive que Smart Update refuse d'automatiser."
+        report_finalize "$EXIT_MANUAL_TRANSACTION_REQUIRED"
+        exit "$EXIT_MANUAL_TRANSACTION_REQUIRED"
+    fi
+}
+
 install_updates() {
     if [[ "$MODE" == "audit" ]]; then
         OFFICIAL_RESULT="ANALYZED"
@@ -297,8 +334,13 @@ install_updates() {
         logger_info "Aucune mise à jour officielle à installer."
         return 0
     fi
-    logger_info "Installation de la mise à jour complète des dépôts officiels."
-    if ! pacman -Syu --needed </dev/null 2>&1 | tee -a "$LOG_FILE"; then
+    if ! revalidate_official_transaction; then
+        OFFICIAL_RESULT="ABORT_BEFORE_INSTALL"
+        logger_error "La transaction officielle a changé depuis l'analyse."
+        exit "$EXIT_OFFICIAL_TRANSACTION_DRIFT"
+    fi
+    logger_info "Installation de la transaction ordinaire avec Pacman (ask mask 75)."
+    if ! pacman -Syu --ask=75 </dev/null 2>&1 | tee -a "$LOG_FILE"; then
         decision_add "BLOCK" "Pacman a interrompu ou refusé la transaction."
         logger_blocked "${DECISION_REASONS[-1]}"
         exit "$EXIT_PACMAN_TRANSACTION_FAILED"
@@ -327,12 +369,15 @@ main() {
     prepare_package_replacements_context
     prepare_transaction_context
     prepare_package_candidates_context
+    prepare_transaction_questions_context
     prepare_aur_context
+    APPROVED_TRANSACTION_SNAPSHOT=$(transaction_snapshot)
     engine_load_policies
     engine_run_policies
     simulate_transaction
     persist_arch_news_context
     enforce_final_decision
+    enforce_execution_capability
     install_updates
     if aur_phase_execute; then
         :

@@ -40,6 +40,7 @@ report_finalize() {
     local exit_description
     local aur_detected_count=0 aur_approved_count=0 aur_skipped_count=0
     local aur_unknown_count=0 aur_installed_count=0
+    local manual_question_count=0
 
     if [[ "${REPORT_FINALIZED:-no}" == "yes" ]]; then
         return 0
@@ -67,6 +68,8 @@ report_finalize() {
         && aur_unknown_count=${#UNKNOWN_FOREIGN_PACKAGES[@]}
     declare -p AUR_INSTALLED_PACKAGES >/dev/null 2>&1 \
         && aur_installed_count=${#AUR_INSTALLED_PACKAGES[@]}
+    declare -p TRANSACTION_QUESTIONS >/dev/null 2>&1 \
+        && manual_question_count=${#TRANSACTION_QUESTIONS[@]}
 
     {
         echo
@@ -113,6 +116,11 @@ report_finalize() {
             printf 'Skipped  : 0\n'
         fi
         printf 'Result   : %s\n' "${OFFICIAL_RESULT:-NOT_RUN}"
+        printf 'Policy decision             : %s\n' "${DECISION_FINAL:-BLOCK}"
+        printf 'Official execution capability: %s\n' "${OFFICIAL_EXECUTION_CAPABILITY:-UNKNOWN}"
+        if ((manual_question_count > 0)); then
+            printf 'Manual reason               : %s\n' "${TRANSACTION_QUESTIONS[@]}"
+        fi
 
         echo
         echo "===================================================="

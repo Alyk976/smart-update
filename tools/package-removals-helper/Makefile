@@ -21,6 +21,7 @@ check: $(TARGET)
 	./$(TARGET) --replacements >/dev/null
 	./$(TARGET) --additions >/dev/null
 	./$(TARGET) --additions-meta >/dev/null
+	./$(TARGET) --questions >/dev/null
 	@if ./$(TARGET) --unknown >/dev/null 2>&1; then \
 		echo "unknown argument unexpectedly accepted" >&2; \
 		exit 1; \

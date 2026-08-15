@@ -19,6 +19,8 @@ Smart Update exposes explicit process exit codes so administrators, scripts and 
 | `30` | `INVALID_FINAL_DECISION` | Final decision state is inconsistent or invalid |
 | `31` | `AUR_DISCOVERY_FAILED` | AUR discovery or anti-TOCTOU validation failed |
 | `32` | `AUR_UPDATE_FAILED` | Official phase succeeded but targeted yay update failed |
+| `33` | `OFFICIAL_TRANSACTION_DRIFT` | Official transaction changed before installation |
+| `34` | `MANUAL_TRANSACTION_REQUIRED` | Pacman choices require manual execution |
 
 The canonical implementation lives in:
 

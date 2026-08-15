@@ -50,6 +50,7 @@ assert_contains 'readonly PACKAGE_REMOVALS_MODULE="${LIB_DIR}/package_removals.s
 assert_contains 'readonly PACKAGE_REPLACEMENTS_MODULE="${LIB_DIR}/package_replacements.sh"'
 assert_contains 'readonly PACKAGE_ADDITIONS_MODULE="${LIB_DIR}/package_additions.sh"'
 assert_contains 'readonly VERSION_MODULE="${LIB_DIR}/version.sh"'
+assert_contains 'readonly TRANSACTION_QUESTIONS_MODULE="${LIB_DIR}/transaction_questions.sh"'
 
 # Le helper natif installé doit vivre directement dans /usr/lib/smart-update.
 assert_contains '    readonly PACKAGE_REMOVALS_HELPER="${TOOLS_DIR}/package-removals-helper"'

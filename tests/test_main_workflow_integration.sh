@@ -36,12 +36,14 @@ assert_exact_line '    prepare_package_removals_context'
 assert_exact_line '    prepare_package_replacements_context'
 assert_exact_line '    prepare_transaction_context'
 assert_exact_line '    prepare_package_candidates_context'
+assert_exact_line '    prepare_transaction_questions_context'
 assert_exact_line '    prepare_aur_context'
 assert_exact_line '    engine_load_policies'
 assert_exact_line '    engine_run_policies'
 assert_exact_line '    simulate_transaction'
 assert_exact_line '    persist_arch_news_context'
 assert_exact_line '    enforce_final_decision'
+assert_exact_line '    enforce_execution_capability'
 assert_exact_line '    install_updates'
 assert_exact_line '    if aur_phase_execute; then'
 assert_exact_line '    report_finalize "$EXIT_OK"'
@@ -52,12 +54,14 @@ removals_line=$(line_number '    prepare_package_removals_context')
 replacements_line=$(line_number '    prepare_package_replacements_context')
 transaction_line=$(line_number '    prepare_transaction_context')
 candidates_line=$(line_number '    prepare_package_candidates_context')
+questions_line=$(line_number '    prepare_transaction_questions_context')
 aur_prepare_line=$(line_number '    prepare_aur_context')
 engine_load_line=$(line_number '    engine_load_policies')
 engine_run_line=$(line_number '    engine_run_policies')
 simulation_line=$(line_number '    simulate_transaction')
 persist_line=$(line_number '    persist_arch_news_context')
 gate_line=$(line_number '    enforce_final_decision')
+capability_line=$(line_number '    enforce_execution_capability')
 install_line=$(line_number '    install_updates')
 aur_execute_line=$(line_number '    if aur_phase_execute; then')
 report_line=$(line_number '    report_finalize "$EXIT_OK"')
@@ -70,12 +74,14 @@ for current in \
     "$replacements_line" \
     "$transaction_line" \
     "$candidates_line" \
+    "$questions_line" \
     "$aur_prepare_line" \
     "$engine_load_line" \
     "$engine_run_line" \
     "$simulation_line" \
     "$persist_line" \
     "$gate_line" \
+    "$capability_line" \
     "$install_line" \
     "$aur_execute_line" \
     "$report_line"; do
@@ -94,6 +100,26 @@ if ((gate_line >= install_line)); then
     printf 'Erreur : install_updates est appelé avant le Decision Gate.\n' >&2
     exit 1
 fi
+
+if ((capability_line >= install_line)); then
+    printf 'Erreur : capability gate placé après install_updates.\n' >&2
+    exit 1
+fi
+
+if ((capability_line >= aur_execute_line)); then
+    printf 'Erreur : la phase AUR peut précéder le capability gate.\n' >&2
+    exit 1
+fi
+
+grep -Fq 'AUR_RESULT="DEFERRED_OFFICIAL_UPDATE_REQUIRED"' "$TARGET"
+grep -Fq 'exit "$EXIT_MANUAL_TRANSACTION_REQUIRED"' "$TARGET"
+
+if rg -n '(^|[;&[:space:]])yes[[:space:]]*\||(^|[;&[:space:]])expect([;&[:space:]]|$)|pacman .*--overwrite|pacman .*--nodeps|pacman -Syu --needed' \
+    bin/smart-update lib/aur_phase.sh >/dev/null; then
+    printf 'Erreur : mécanisme Pacman interdit présent.\n' >&2
+    exit 1
+fi
+grep -Fq 'pacman -Syu --ask=75' "$TARGET"
 
 if ((gate_line >= aur_execute_line || install_line >= aur_execute_line)); then
     printf 'Erreur : la phase AUR peut précéder le gate ou la phase officielle.\n' >&2
@@ -156,7 +182,7 @@ decision_allows_installation
 # Le mode audit retourne avant l'unique invocation de Pacman dans
 # install_updates, quelle que soit la décision autorisable.
 audit_guard_line=$(grep -n -m 1 'if \[\[ "$MODE" == "audit" \]\]' "$TARGET" | cut -d: -f1)
-pacman_install_line=$(grep -n -m 1 'pacman -Syu --needed' "$TARGET" | cut -d: -f1)
+pacman_install_line=$(grep -n -m 1 'pacman -Syu --ask=75' "$TARGET" | cut -d: -f1)
 if ((audit_guard_line >= pacman_install_line)); then
     printf 'Erreur : le mode audit peut atteindre Pacman.\n' >&2
     exit 1

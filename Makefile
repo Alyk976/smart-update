@@ -37,6 +37,7 @@ LIB_MODULES := \
 	lib/report.sh \
 	lib/stability.sh \
 	lib/system_checks.sh \
+	lib/transaction_questions.sh \
 	lib/version.sh
 
 POLICIES := $(wildcard lib/policies/*.sh)

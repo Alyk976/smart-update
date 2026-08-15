@@ -88,6 +88,44 @@ eligible. Testing, staging, unstable, third-party, VCS and explicit pre-release
 candidates fail closed before the decision gate. The AUR phase remains isolated
 from this official-repository metadata boundary.
 
+## Policy gate and execution capability gate
+
+The policy gate and the execution capability gate answer different questions.
+The policy gate decides whether the analyzed changes are acceptable to the
+administrator. The execution capability gate decides whether Pacman's CLI can
+apply those changes non-interactively without answering a package-manager
+choice globally.
+
+The read-only libalpm helper exposes transaction questions as strict records:
+
+```text
+TYPE|field1|field2|field3|field4
+```
+
+An empty question set is `AUTOMATIC`. Conflict removals, replacements, provider
+selection, ignored packages, unresolved-target removal, corrupted packages,
+key import and unknown question types are `MANUAL_REQUIRED`. A normal new
+dependency is not manual by itself; its policy still decides whether it is
+allowed. A manual official transaction defers AUR installation because the
+required official upgrade has not completed.
+
+Immediately before an automatic guarded installation, Smart Update rebuilds
+the read-only transaction context from the same checkupdates database and
+compares updates, repositories, candidate versions, additions, removals,
+replacements and questions with the approved snapshot. Drift aborts before
+Pacman starts. Pacman remains the installation frontend and runs `-Syu` with a
+conservative question mask: ignored packages, replacements, corrupted-package
+deletion and key import are refused; conflict removals and unresolved-target
+removal retain their safe negative defaults. Provider selection cannot be
+refused through Pacman's question mask, which is why transactions already
+known to require it are manual.
+
+This check is deliberately not described as atomic. A small TOCTOU window
+remains between the final helper comparison and Pacman's acquisition of its
+database lock. Pacman also refreshes the live sync databases as part of `-Syu`
+and remains the final authority. Any unexpected question is refused rather
+than accepted globally; a subsequent run performs a fresh analysis.
+
 ## Filesystem and services
 
 Immutable application files live under `/usr`, administrator configuration

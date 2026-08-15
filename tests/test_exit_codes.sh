@@ -18,11 +18,15 @@ source "./lib/exit_codes.sh"
 [[ "$EXIT_INVALID_FINAL_DECISION" -eq 30 ]]
 [[ "$EXIT_AUR_DISCOVERY_FAILED" -eq 31 ]]
 [[ "$EXIT_AUR_UPDATE_FAILED" -eq 32 ]]
+[[ "$EXIT_OFFICIAL_TRANSACTION_DRIFT" -eq 33 ]]
+[[ "$EXIT_MANUAL_TRANSACTION_REQUIRED" -eq 34 ]]
 
 [[ "$(exit_code_label 29)" == "POLICY_BLOCK" ]]
 [[ "$(exit_code_label 26)" == "PACMAN_TRANSACTION_FAILED" ]]
 [[ "$(exit_code_label 31)" == "AUR_DISCOVERY_FAILED" ]]
 [[ "$(exit_code_label 32)" == "AUR_UPDATE_FAILED" ]]
+[[ "$(exit_code_label 33)" == "OFFICIAL_TRANSACTION_DRIFT" ]]
+[[ "$(exit_code_label 34)" == "MANUAL_TRANSACTION_REQUIRED" ]]
 [[ "$(exit_code_label 255)" == "UNKNOWN" ]]
 
 [[ -n "$(exit_code_description 0)" ]]
