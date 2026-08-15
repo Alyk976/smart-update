@@ -36,7 +36,8 @@ LIB_MODULES := \
 	lib/package_replacements.sh \
 	lib/report.sh \
 	lib/stability.sh \
-	lib/system_checks.sh
+	lib/system_checks.sh \
+	lib/version.sh
 
 POLICIES := $(wildcard lib/policies/*.sh)
 SYSTEMD_UNITS := systemd/smart-update.service systemd/smart-update.timer

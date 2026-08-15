@@ -11,7 +11,7 @@ create_report() {
     REPORT_FILE="${REPORT_DIR}/report-${timestamp}.txt"
 
     {
-        echo "Smart Update v1.0.0"
+        printf 'Smart Update %s\n' "$(smart_update_package_version)"
         echo "Date : $(date --iso-8601=seconds)"
         echo "Machine : $(cat /etc/hostname 2>/dev/null || echo inconnue)"
         echo "Noyau : $(uname -r)"

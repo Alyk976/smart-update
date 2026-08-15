@@ -26,4 +26,4 @@ printf 'Identity  : %s (%s:%s)\n' \
 printf 'Home      : %s\n' "$AUR_EXEC_HOME"
 printf 'Version   : %s\n' "$AUR_HELPER_VERSION"
 printf 'Discovery : read-only yay -Qua --aur --color never\n'
-aur_user_run "$AUR_HELPER_PATH" -Qua --aur --color never
+aur_user_run_readonly "$AUR_HELPER_PATH" -Qua --aur --color never

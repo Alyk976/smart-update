@@ -9,8 +9,10 @@ source "./lib/aur_updates.sh"
 
 MOCK_YAY_STATUS=0
 MOCK_YAY_OUTPUT=""
-aur_user_run() {
+MOCK_YAY_ERROR=""
+aur_user_run_readonly() {
     printf '%s\n' "$MOCK_YAY_OUTPUT"
+    printf '%s\n' "$MOCK_YAY_ERROR" >&2
     return "$MOCK_YAY_STATUS"
 }
 
@@ -24,6 +26,12 @@ aur_updates_classify
 ((${#AUR_SKIPPED_UNSTABLE[@]} == 6))
 [[ "${AUR_APPROVED_PACKAGES[*]}" != *foo-git* ]]
 
+# Un avertissement stderr ne doit jamais entrer dans le parseur stdout.
+MOCK_YAY_OUTPUT='google-chrome 149.0-1 -> 151.0-1'
+MOCK_YAY_ERROR=' -> diagnostic warning only'
+aur_updates_collect yay
+[[ "${AUR_UPDATE_NAMES[*]}" == "google-chrome" ]]
+
 MOCK_YAY_OUTPUT='not a supported yay line'
 if aur_updates_collect yay; then
     printf 'Erreur : sortie yay invalide acceptée.\n' >&2
@@ -33,11 +41,13 @@ fi
 [[ -n "$AUR_UPDATES_ERROR" ]]
 
 MOCK_YAY_STATUS=7
-MOCK_YAY_OUTPUT='network error'
+MOCK_YAY_OUTPUT='must-not-be-used'
+MOCK_YAY_ERROR='network error'
 if aur_updates_collect yay; then
     printf 'Erreur : échec yay accepté.\n' >&2
     exit 1
 fi
 ((${#AUR_UPDATE_NAMES[@]} == 0))
+[[ "$AUR_UPDATES_ERROR" == *'network error'* ]]
 
 printf 'Tous les tests du collecteur AUR ont réussi.\n'

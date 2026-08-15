@@ -84,3 +84,20 @@ aur_user_run() {
         LC_ALL=C \
         "$@"
 }
+
+aur_user_run_readonly() {
+    [[ -n "$AUR_EXEC_USER" && -n "$AUR_EXEC_HOME" ]] || return 125
+    local -a identity_prefix=()
+
+    if ((EUID != AUR_EXEC_UID)); then
+        identity_prefix=(runuser -u "$AUR_EXEC_USER" --)
+    fi
+
+    "${identity_prefix[@]}" env -i \
+        HOME="$AUR_EXEC_HOME" \
+        USER="$AUR_EXEC_USER" \
+        LOGNAME="$AUR_EXEC_USER" \
+        PATH="/usr/local/bin:/usr/bin:/bin" \
+        LC_ALL=C \
+        "$@"
+}

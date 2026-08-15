@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016
 
 set -Eeuo pipefail
 
@@ -41,11 +42,29 @@ chmod +x "$TEST_DIR/bin/capture-env"
 [[ "$(aur_user_run "$TEST_DIR/bin/capture-env")" == \
     "mahadi|1000|1000|$TEST_DIR/home|mahadi" ]]
 
-if rg -n 'runuser|--sudoloop|sudoers' lib/aur_user.sh lib/aur_phase.sh \
+cat >"$TEST_DIR/bin/capture-readonly" <<'MOCK'
+#!/usr/bin/env bash
+printf '%s|%s|%s|%s\n' "$(id -u)" "$HOME" "$USER" "$LOGNAME"
+MOCK
+chmod +x "$TEST_DIR/bin/capture-readonly"
+runuser() {
+    [[ "${1:-}" == "-u" && "${2:-}" == "mahadi" && "${3:-}" == "--" ]]
+    shift 3
+    "$@"
+}
+readonly_context=$(aur_user_run_readonly "$TEST_DIR/bin/capture-readonly")
+[[ "$readonly_context" == "$(id -u)|$TEST_DIR/home|mahadi|mahadi" ]]
+
+if rg -n -- '--sudoloop|sudoers' lib/aur_user.sh lib/aur_phase.sh \
     >/dev/null; then
     printf 'Erreur : élévation ou sudoers interdit présent dans le chemin AUR.\n' >&2
     exit 1
 fi
+readonly_function=$(sed -n '/^aur_user_run_readonly()/,/^}/p' lib/aur_user.sh)
+install_function=$(sed -n '/^aur_user_run()/,/^}/p' lib/aur_user.sh)
+[[ "$readonly_function" == *'runuser -u'* ]]
+[[ "$install_function" != *runuser* ]]
+[[ "$install_function" == *'SUDO_USER="$AUR_EXEC_USER"'* ]]
 
 SUDO_USER=mahadi
 export SUDO_USER

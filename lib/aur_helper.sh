@@ -42,7 +42,7 @@ aur_helper_capability_check() {
         return 1
     fi
 
-    if ! version_output=$(aur_user_run "$helper_path" --version 2>&1); then
+    if ! version_output=$(aur_user_run_readonly "$helper_path" --version 2>&1); then
         AUR_HELPER_CAPABILITY="INCOMPATIBLE"
         AUR_HELPER_CAPABILITY_ERROR="yay --version failed; yay or libalpm is incompatible."
         return 1
@@ -59,7 +59,7 @@ aur_helper_capability_check() {
         return 1
     fi
 
-    if ! help_output=$(aur_user_run "$helper_path" --help 2>&1); then
+    if ! help_output=$(aur_user_run_readonly "$helper_path" --help 2>&1); then
         AUR_HELPER_CAPABILITY="INCOMPATIBLE"
         AUR_HELPER_CAPABILITY_ERROR="yay --help failed."
         return 1

@@ -71,6 +71,7 @@ assert_file /usr/lib/smart-update/exit_codes.sh
 assert_file /usr/lib/smart-update/package_additions.sh
 assert_file /usr/lib/smart-update/package_candidates.sh
 assert_file /usr/lib/smart-update/stability.sh
+assert_file /usr/lib/smart-update/version.sh
 assert_file /usr/lib/smart-update/package-removals-helper
 assert_file /usr/lib/smart-update/policies/10_update_count.sh
 assert_file /usr/lib/smart-update/policies/15_stable_updates.sh
@@ -108,6 +109,7 @@ assert_mode /usr/lib/smart-update/exit_codes.sh 644
 assert_mode /usr/lib/smart-update/package_additions.sh 644
 assert_mode /usr/lib/smart-update/package_candidates.sh 644
 assert_mode /usr/lib/smart-update/stability.sh 644
+assert_mode /usr/lib/smart-update/version.sh 644
 assert_mode /usr/lib/smart-update/policies 755
 assert_mode /usr/lib/smart-update/policies/10_update_count.sh 644
 assert_mode /usr/lib/smart-update/policies/15_stable_updates.sh 644
@@ -140,6 +142,7 @@ assert_same_file lib/exit_codes.sh /usr/lib/smart-update/exit_codes.sh
 assert_same_file lib/package_additions.sh /usr/lib/smart-update/package_additions.sh
 assert_same_file lib/package_candidates.sh /usr/lib/smart-update/package_candidates.sh
 assert_same_file lib/stability.sh /usr/lib/smart-update/stability.sh
+assert_same_file lib/version.sh /usr/lib/smart-update/version.sh
 assert_same_file lib/policies/10_update_count.sh \
     /usr/lib/smart-update/policies/10_update_count.sh
 assert_same_file lib/policies/15_stable_updates.sh \

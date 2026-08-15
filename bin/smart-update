@@ -42,6 +42,7 @@ readonly PACKAGE_REPLACEMENTS_MODULE="${LIB_DIR}/package_replacements.sh"
 readonly PACKAGE_ADDITIONS_MODULE="${LIB_DIR}/package_additions.sh"
 readonly PACKAGE_CANDIDATES_MODULE="${LIB_DIR}/package_candidates.sh"
 readonly STABILITY_MODULE="${LIB_DIR}/stability.sh"
+readonly VERSION_MODULE="${LIB_DIR}/version.sh"
 
 if [[ -x "${TOOLS_DIR}/package-removals-helper/package-removals-helper" ]]; then
     readonly PACKAGE_REMOVALS_HELPER="${TOOLS_DIR}/package-removals-helper/package-removals-helper"
@@ -53,6 +54,8 @@ readonly LOCK_FILE="/run/lock/smart-update.lock"
 readonly STATE_DIR="/var/lib/smart-update"
 readonly LAST_SUCCESS_FILE="${STATE_DIR}/last-success"
 readonly ARCH_NEWS_STATE_FILE="${STATE_DIR}/arch-news.last"
+readonly CHECKUPDATES_DB_PATH="/tmp/checkup-db-${EUID}/"
+export SMART_UPDATE_ALPM_DBPATH="$CHECKUPDATES_DB_PATH"
 
 for required_module in \
     "$CONFIG_MODULE" \
@@ -72,7 +75,8 @@ for required_module in \
     "$PACKAGE_REPLACEMENTS_MODULE" \
     "$PACKAGE_ADDITIONS_MODULE" \
     "$PACKAGE_CANDIDATES_MODULE" \
-    "$STABILITY_MODULE"; do
+    "$STABILITY_MODULE" \
+    "$VERSION_MODULE"; do
 
     if [[ ! -r "$required_module" ]]; then
         printf 'Module Smart Update absent : %s\n' "$required_module" >&2
@@ -116,6 +120,8 @@ source "$PACKAGE_ADDITIONS_MODULE"
 source "$PACKAGE_CANDIDATES_MODULE"
 # shellcheck source=lib/stability.sh
 source "$STABILITY_MODULE"
+# shellcheck source=lib/version.sh
+source "$VERSION_MODULE"
 
 decision_reset
 config_load "$CONFIG_FILE"
@@ -161,7 +167,7 @@ load_updates() {
     local output status line package_name
     logger_info "Recherche sécurisée des mises à jour."
     set +e
-    output=$(checkupdates 2>&1)
+    output=$(CHECKUPDATES_DB="$CHECKUPDATES_DB_PATH" checkupdates 2>&1)
     status=$?
     set -e
     case "$status" in

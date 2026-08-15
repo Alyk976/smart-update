@@ -28,17 +28,24 @@ aur_updates_fail() {
 }
 
 aur_updates_collect() {
-    local helper="${1:-}" output status line package installed candidate age
+    local helper="${1:-}" output error_output status line package installed candidate age
+    local output_file error_file
     local -A seen_packages=()
     aur_updates_reset
 
-    if output=$(aur_user_run "$helper" -Qua --aur --color never 2>&1); then
+    output_file=$(mktemp)
+    error_file=$(mktemp)
+    if aur_user_run_readonly "$helper" -Qua --aur --color never \
+        >"$output_file" 2>"$error_file"; then
         status=0
     else
         status=$?
     fi
+    output=$(<"$output_file")
+    error_output=$(<"$error_file")
+    rm -f "$output_file" "$error_file"
     if ((status != 0)); then
-        aur_updates_fail "La découverte yay a échoué avec le code ${status}.${output:+ ${output}}"
+        aur_updates_fail "La découverte yay a échoué avec le code ${status}.${error_output:+ ${error_output}}"
         return
     fi
 

@@ -25,7 +25,7 @@ aur_user_resolve() {
     fi
 }
 
-aur_user_run() {
+aur_user_run_readonly() {
     case "${2:-}" in
         --version)
             ((MOCK_VERSION_STATUS == 0)) || return "$MOCK_VERSION_STATUS"

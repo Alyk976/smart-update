@@ -49,6 +49,7 @@ assert_contains 'readonly AUR_PHASE_MODULE="${LIB_DIR}/aur_phase.sh"'
 assert_contains 'readonly PACKAGE_REMOVALS_MODULE="${LIB_DIR}/package_removals.sh"'
 assert_contains 'readonly PACKAGE_REPLACEMENTS_MODULE="${LIB_DIR}/package_replacements.sh"'
 assert_contains 'readonly PACKAGE_ADDITIONS_MODULE="${LIB_DIR}/package_additions.sh"'
+assert_contains 'readonly VERSION_MODULE="${LIB_DIR}/version.sh"'
 
 # Le helper natif installé doit vivre directement dans /usr/lib/smart-update.
 assert_contains '    readonly PACKAGE_REMOVALS_HELPER="${TOOLS_DIR}/package-removals-helper"'

@@ -15,7 +15,7 @@ chmod +x "$TEST_DIR/bin/pacman"
 PATH="$TEST_DIR/bin:$PATH"
 export PATH
 
-aur_user_run() {
+aur_user_run_readonly() {
     local package="${*: -1}"
     if [[ "$package" == "google-chrome" ]]; then
         printf 'Repository                    : aur\nName                          : google-chrome\n'

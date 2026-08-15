@@ -37,6 +37,13 @@ logger_info() {
 
 pacman() {
     case "${1:-}" in
+        -Q)
+            [[ "${2:-}" == "smart-update" ]] && \
+                printf '%s\n' 'smart-update 1.1.0.dev-2'
+            ;;
+        -Qqe)
+            return 0
+            ;;
         -Qmq)
             printf '%s\n' \
                 "google-chrome" \
@@ -50,8 +57,20 @@ pacman() {
 
 # shellcheck source=lib/exit_codes.sh
 source "./lib/exit_codes.sh"
+# shellcheck source=lib/version.sh
+source "./lib/version.sh"
 # shellcheck source=lib/report.sh
 source "./lib/report.sh"
+
+[[ "$(smart_update_package_version)" == "1.1.0.dev-2" ]]
+if grep -Fq 'Smart Update v1.0.0' lib/report.sh; then
+    printf 'Erreur : branding de version v1.0.0 obsolète dans le rapport.\n' >&2
+    exit 1
+fi
+
+create_report
+grep -Fq 'Smart Update 1.1.0.dev-2' "$REPORT_FILE"
+REPORT_START_EPOCH=$(($(date +%s) - 4))
 
 : >"$REPORT_FILE"
 

@@ -322,7 +322,17 @@ int main(int argc, char **argv)
 
     question_context.mode = mode;
 
-    alpm_handle_t *handle = alpm_initialize(ALPM_ROOT, ALPM_DBPATH, &error);
+    const char *database_path = getenv("SMART_UPDATE_ALPM_DBPATH");
+
+    if (database_path == NULL || *database_path == '\0') {
+        database_path = ALPM_DBPATH;
+    } else if (database_path[0] != '/'
+               || strstr(database_path, "..") != NULL) {
+        fprintf(stderr, "package-removals-helper: invalid database path\n");
+        return EXIT_FAILURE;
+    }
+
+    alpm_handle_t *handle = alpm_initialize(ALPM_ROOT, database_path, &error);
 
     if (handle == NULL) {
         fprintf(
