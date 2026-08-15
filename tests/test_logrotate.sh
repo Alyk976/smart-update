@@ -79,7 +79,32 @@ dependency_pattern="'logrotate([<>=][^']*)?'"
     fail "logrotate ne doit pas être déclaré dans depends."
 
 if command -v logrotate >/dev/null 2>&1; then
-    logrotate --debug "$LOGROTATE_CONFIG" >/dev/null
+    TEST_DIR=$(mktemp -d)
+
+    cleanup() {
+        rm -rf "$TEST_DIR"
+    }
+    trap cleanup EXIT
+
+    TEST_LOG="${TEST_DIR}/smart-update.log"
+    TEST_BLOCKED_LOG="${TEST_DIR}/blocked.log"
+    TEST_CONFIG="${TEST_DIR}/smart-update.logrotate"
+    TEST_STATE="${TEST_DIR}/logrotate.status"
+    readonly TEST_DIR TEST_LOG TEST_BLOCKED_LOG TEST_CONFIG TEST_STATE
+
+    touch "$TEST_LOG" "$TEST_BLOCKED_LOG"
+
+    awk \
+        -v test_log="$TEST_LOG" \
+        -v test_blocked_log="$TEST_BLOCKED_LOG" '
+            {
+                gsub("/var/log/smart-update/smart-update.log", test_log)
+                gsub("/var/log/smart-update/blocked.log", test_blocked_log)
+                print
+            }
+        ' "$LOGROTATE_CONFIG" >"$TEST_CONFIG"
+
+    logrotate --debug --state "$TEST_STATE" "$TEST_CONFIG" >/dev/null
 fi
 
 printf 'Tous les tests logrotate ont réussi.\n'
