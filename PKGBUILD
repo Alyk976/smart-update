@@ -12,7 +12,7 @@ optdepends=('logrotate: rotate Smart Update log files')
 makedepends=('gcc' 'git' 'make' 'pkgconf')
 backup=('etc/smart-update/smart-update.conf'
         'etc/smart-update/critical-packages.conf')
-source=("${pkgname}::git+ssh://git@github.com/Alyk976/smart-update-v2.git#commit=09c4a694a926e45948cd8592e85328351129e859")
+source=("${pkgname}::git+ssh://git@github.com/Alyk976/smart-update-v2.git#commit=bf5b26ed28f9b68a1506836c0963d322a2316ce8")
 sha256sums=('SKIP')
 
 build() {
