@@ -8,7 +8,8 @@ arch=('x86_64')
 url="https://github.com/Alyk976/smart-update"
 license=('Apache-2.0')
 depends=('bash' 'pacman' 'pacman-contrib' 'libxml2' 'systemd')
-optdepends=('logrotate: rotate Smart Update log files')
+optdepends=('logrotate: rotate Smart Update log files'
+            'yay: update stable AUR packages')
 makedepends=('gcc' 'git' 'make' 'pkgconf')
 backup=('etc/smart-update/smart-update.conf'
         'etc/smart-update/critical-packages.conf')

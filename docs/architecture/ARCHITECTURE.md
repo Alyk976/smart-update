@@ -33,7 +33,13 @@ Aggregate ALLOW / WARNING / BLOCK
     ↓
 Decision gate
     ↓
-Audit only, guarded installation, or controlled block
+Audit only, guarded official installation, or controlled block
+    ↓
+Rediscover and verify stable AUR candidates
+    ↓
+Post-official yay/libalpm capability recheck
+    ↓
+Targeted yay installation with validated non-root build identity
     ↓
 Finalize the report
 ```
@@ -51,6 +57,12 @@ Finalize the report
   `lib/package_additions.sh` validate and normalize the helper output.
 - `lib/package_candidates.sh` parses candidate metadata fail-closed, while
   `lib/stability.sh` provides deterministic, side-effect-free classification.
+- `lib/aur_user.sh` resolves a non-root execution identity without guessing;
+  `lib/aur_helper.sh` validates yay/libalpm before discovery and again after the
+  official update; `lib/aur_context.sh`, `lib/aur_updates.sh` and
+  `lib/aur_phase.sh` distinguish
+  AUR from unknown Foreign packages, classify candidates, enforce anti-TOCTOU
+  comparison and target only approved stable package names.
 - `lib/policies/*.sh` implement deterministic policy decisions without causing
   installation or process termination.
 - `lib/engine.sh` runs policies and records their results.
@@ -73,8 +85,8 @@ For update eligibility, the same prepared addition objects expose their owning
 sync database, package name and version as `repository|package|version`.
 Only stable candidates from `core`, `extra` and `multilib` are currently
 eligible. Testing, staging, unstable, third-party, VCS and explicit pre-release
-candidates fail closed before the decision gate. This metadata boundary is also
-the foundation for a later, isolated Foreign/AUR integration.
+candidates fail closed before the decision gate. The AUR phase remains isolated
+from this official-repository metadata boundary.
 
 ## Filesystem and services
 
@@ -101,3 +113,9 @@ logs; report retention remains part of Smart Update itself.
 - Smart Update never removes a Pacman lock automatically.
 - No automatic reboot, snapshot or forced overwrite is performed.
 - Every controlled run finalizes its report when a report exists.
+- yay is invoked from the existing root process with `SUDO_USER`, `SUDO_UID`,
+  `SUDO_GID` and `HOME` derived from the validated account. yay keeps Pacman
+  privileged and drops build commands to that identity; Smart Update never
+  creates sudoers rules or enables `--devel`/`--sudoloop`.
+- A yay/libalpm failure after official success defers the AUR phase, produces a
+  partial non-zero result and never triggers an automatic Pacman rollback.

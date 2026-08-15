@@ -20,6 +20,11 @@ LIB_MODULES := \
 	lib/arch_news.sh \
 	lib/arch_news_context.sh \
 	lib/arch_news_state.sh \
+	lib/aur_context.sh \
+	lib/aur_helper.sh \
+	lib/aur_phase.sh \
+	lib/aur_updates.sh \
+	lib/aur_user.sh \
 	lib/config.sh \
 	lib/decision.sh \
 	lib/engine.sh \

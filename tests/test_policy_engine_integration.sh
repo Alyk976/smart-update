@@ -54,6 +54,9 @@ reset_context() {
 
     MOCK_FOREIGN_PACKAGES=""
     export MOCK_FOREIGN_PACKAGES
+    AUR_CONTEXT_ERROR=""
+    AUR_FOREIGN_PACKAGES=()
+    UNKNOWN_FOREIGN_PACKAGES=()
 
     ARCH_NEWS_CONTEXT_STATUS="UP_TO_DATE"
     ARCH_NEWS_CONTEXT_ERROR=""
@@ -106,6 +109,7 @@ reset_context
 UPDATE_PACKAGES=(linux nano)
 MOCK_FOREIGN_PACKAGES="aur-test-package"
 export MOCK_FOREIGN_PACKAGES
+UNKNOWN_FOREIGN_PACKAGES=(aur-test-package)
 NEW_PACKAGES=(gexiv2-common)
 ALLOW_NEW_DEPENDENCIES="yes"
 
@@ -123,7 +127,7 @@ fi
 [[ "$rc" -eq 1 ]]
 
 grep -Fq "Policy critical_updates: Mises à jour critiques bloquées par la configuration :" "$LOG_FILE"
-grep -Fq "Policy foreign_packages: 1 paquet(s) étranger(s)/AUR détecté(s)." "$LOG_FILE"
+grep -Fq "Policy foreign_packages: 1 paquet(s) Foreign absent(s) de l'AUR. Aucune modification automatique." "$LOG_FILE"
 grep -Fq "Policy new_dependencies: 1 nouveau(x) paquet(s) ou nouvelle(s) dépendance(s) détecté(s)." "$LOG_FILE"
 
 # Scénario 4 : autoriser les critiques ne contourne jamais la stabilité.
@@ -144,5 +148,16 @@ if decision_allows_installation; then
     printf 'Erreur : un paquet critique instable franchit le Decision Gate.\n' >&2
     exit 1
 fi
+
+# Scénario 5 : un paquet critique officiel stable autorisé reste WARNING.
+reset_context
+UPDATE_PACKAGES=(linux glibc firefox)
+ALLOW_CRITICAL_UPDATES="yes"
+PACKAGE_CANDIDATE_REPOS=(core core extra)
+PACKAGE_CANDIDATE_NAMES=(linux glibc firefox)
+PACKAGE_CANDIDATE_VERSIONS=(6.12.1-1 2.40-1 133.0-1)
+engine_run_policies >/dev/null
+[[ "$DECISION_FINAL" == "WARNING" ]]
+decision_allows_installation
 
 printf "Tous les tests d’intégration du moteur de politiques ont réussi.\n"

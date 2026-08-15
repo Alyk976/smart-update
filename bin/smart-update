@@ -32,6 +32,11 @@ readonly SYSTEM_CHECKS_MODULE="${LIB_DIR}/system_checks.sh"
 readonly REPORT_MODULE="${LIB_DIR}/report.sh"
 readonly ENGINE_MODULE="${LIB_DIR}/engine.sh"
 readonly ARCH_NEWS_CONTEXT_MODULE="${LIB_DIR}/arch_news_context.sh"
+readonly AUR_USER_MODULE="${LIB_DIR}/aur_user.sh"
+readonly AUR_HELPER_MODULE="${LIB_DIR}/aur_helper.sh"
+readonly AUR_UPDATES_MODULE="${LIB_DIR}/aur_updates.sh"
+readonly AUR_CONTEXT_MODULE="${LIB_DIR}/aur_context.sh"
+readonly AUR_PHASE_MODULE="${LIB_DIR}/aur_phase.sh"
 readonly PACKAGE_REMOVALS_MODULE="${LIB_DIR}/package_removals.sh"
 readonly PACKAGE_REPLACEMENTS_MODULE="${LIB_DIR}/package_replacements.sh"
 readonly PACKAGE_ADDITIONS_MODULE="${LIB_DIR}/package_additions.sh"
@@ -58,6 +63,11 @@ for required_module in \
     "$REPORT_MODULE" \
     "$ENGINE_MODULE" \
     "$ARCH_NEWS_CONTEXT_MODULE" \
+    "$AUR_USER_MODULE" \
+    "$AUR_HELPER_MODULE" \
+    "$AUR_UPDATES_MODULE" \
+    "$AUR_CONTEXT_MODULE" \
+    "$AUR_PHASE_MODULE" \
     "$PACKAGE_REMOVALS_MODULE" \
     "$PACKAGE_REPLACEMENTS_MODULE" \
     "$PACKAGE_ADDITIONS_MODULE" \
@@ -86,6 +96,16 @@ source "$REPORT_MODULE"
 source "$ENGINE_MODULE"
 # shellcheck source=lib/arch_news_context.sh
 source "$ARCH_NEWS_CONTEXT_MODULE"
+# shellcheck source=lib/aur_user.sh
+source "$AUR_USER_MODULE"
+# shellcheck source=lib/aur_helper.sh
+source "$AUR_HELPER_MODULE"
+# shellcheck source=lib/aur_updates.sh
+source "$AUR_UPDATES_MODULE"
+# shellcheck source=lib/aur_context.sh
+source "$AUR_CONTEXT_MODULE"
+# shellcheck source=lib/aur_phase.sh
+source "$AUR_PHASE_MODULE"
 # shellcheck source=lib/package_removals.sh
 source "$PACKAGE_REMOVALS_MODULE"
 # shellcheck source=lib/package_replacements.sh
@@ -120,6 +140,8 @@ declare -a CRITICAL_UPDATES=()
 declare -a NEW_PACKAGES=()
 NEW_PACKAGES_ERROR=""
 TRANSACTION_SIMULATION=""
+OFFICIAL_RESULT="NOT_RUN"
+OFFICIAL_INSTALLED_COUNT=0
 
 finalize_report_on_exit() {
     local exit_code=$?
@@ -144,7 +166,7 @@ load_updates() {
     set -e
     case "$status" in
         0) mapfile -t UPDATE_LINES <<<"$output" ;;
-        2) logger_info "Aucune mise à jour disponible."; exit "$EXIT_OK" ;;
+        2) logger_info "Aucune mise à jour officielle disponible."; return 0 ;;
         *) logger_error "Échec de checkupdates :"; printf '%s\n' "$output" | tee -a "$LOG_FILE"; exit "$EXIT_CHECKUPDATES_FAILED" ;;
     esac
     for line in "${UPDATE_LINES[@]}"; do
@@ -212,6 +234,21 @@ prepare_package_candidates_context() {
     fi
 
     logger_info "${#PACKAGE_CANDIDATE_NAMES[@]} candidat(s) officiel(s) analysé(s)."
+    aur_helper_detect_official_recheck
+    if [[ "$AUR_HELPER_RECHECK_REQUIRED" == "yes" ]]; then
+        logger_warning "La transaction contient pacman : contrôle de capacité yay post-libalpm obligatoire."
+    fi
+}
+
+prepare_aur_context() {
+    logger_info "Analyse des paquets AUR et Foreign."
+    if ! aur_phase_prepare; then
+        logger_warning "$AUR_PHASE_ERROR"
+    elif [[ -n "$AUR_PHASE_ERROR" ]]; then
+        logger_warning "$AUR_PHASE_ERROR"
+    else
+        logger_info "${AUR_DETECTED_COUNT} mise(s) à jour AUR détectée(s), ${#AUR_APPROVED_PACKAGES[@]} stable(s) approuvée(s)."
+    fi
 }
 
 persist_arch_news_context() {
@@ -240,6 +277,7 @@ enforce_final_decision() {
 
 install_updates() {
     if [[ "$MODE" == "audit" ]]; then
+        OFFICIAL_RESULT="ANALYZED"
         logger_info "Mode audit : aucune installation effectuée."
         return 0
     fi
@@ -247,6 +285,11 @@ install_updates() {
         decision_add "BLOCK" "Mode inconnu dans la configuration : ${MODE}"
         logger_blocked "${DECISION_REASONS[-1]}"
         exit "$EXIT_INVALID_MODE"
+    fi
+    if ((${#UPDATE_PACKAGES[@]} == 0)); then
+        OFFICIAL_RESULT="NO_UPDATES"
+        logger_info "Aucune mise à jour officielle à installer."
+        return 0
     fi
     logger_info "Installation de la mise à jour complète des dépôts officiels."
     if ! pacman -Syu --needed </dev/null 2>&1 | tee -a "$LOG_FILE"; then
@@ -257,9 +300,13 @@ install_updates() {
     date --iso-8601=seconds >"$LAST_SUCCESS_FILE"
     chmod 640 "$LAST_SUCCESS_FILE"
     logger_info "Mise à jour terminée avec succès."
+    OFFICIAL_RESULT="INSTALLED"
+    OFFICIAL_INSTALLED_COUNT=${#UPDATE_PACKAGES[@]}
 }
 
 main() {
+    local aur_status
+
     require_root
     check_required_commands
     cleanup_old_reports
@@ -274,12 +321,21 @@ main() {
     prepare_package_replacements_context
     prepare_transaction_context
     prepare_package_candidates_context
+    prepare_aur_context
     engine_load_policies
     engine_run_policies
     simulate_transaction
     persist_arch_news_context
     enforce_final_decision
     install_updates
+    if aur_phase_execute; then
+        :
+    else
+        aur_status=$?
+        logger_error "$AUR_PHASE_ERROR"
+        report_finalize "$aur_status"
+        exit "$aur_status"
+    fi
     report_finalize "$EXIT_OK"
 }
 

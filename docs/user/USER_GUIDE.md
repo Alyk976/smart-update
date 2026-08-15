@@ -78,9 +78,42 @@ An administrator can explicitly select `no` to force every critical update to
 `BLOCK`. An unstable critical candidate always remains `BLOCK`, because the
 stable-update policy cannot be bypassed by this setting.
 
-At this development stage, only stable official candidates from `core`,
-`extra` and `multilib` are eligible. Stable AUR updates through `yay` are
-planned for a later v1.1.0 phase and are not yet supported.
+Stable official candidates from `core`, `extra` and `multilib` are eligible.
+Stable AUR updates can also be targeted through optional `yay` integration:
+
+```bash
+ENABLE_AUR_UPDATES="yes"
+AUR_HELPER="yay"
+AUR_USER="auto"
+```
+
+For a manual `sudo smart-update` invocation, `auto` uses `SUDO_USER` only when
+it identifies a valid non-root account with a usable home and shell. For timer
+execution there is no trustworthy calling user, so configure one explicitly:
+
+```bash
+AUR_USER="username"
+```
+
+Never use `root` as `AUR_USER`, and do not grant `NOPASSWD: ALL`. Smart Update
+does not modify sudoers. It invokes yay while retaining the root context already
+required for the official update, but supplies `SUDO_USER`, `SUDO_UID`,
+`SUDO_GID` and `HOME` exclusively from the validated account database entry.
+yay therefore runs Pacman with the existing privilege and drops build commands
+to the non-root AUR identity. No second interactive sudo authentication is
+introduced, including for a timer with an explicit `AUR_USER`.
+
+Immediately before any AUR installation, Smart Update checks yay again. This
+is mandatory when the official candidate set contains `pacman`, and still
+performed otherwise. If the newly installed pacman/libalpm makes yay
+incompatible, the AUR result is `DEFERRED_HELPER_INCOMPATIBLE`, no AUR install
+is attempted, and the run returns a partial non-zero result without rolling
+back the successful official update.
+
+Smart Update approves stable normal and `-bin` candidates. VCS packages and
+explicit alpha, beta, RC, pre, preview, dev, nightly or snapshot versions are
+skipped without preventing other stable AUR or official updates. Foreign
+packages absent from the AUR are reported but never changed.
 
 ## Logs and reports
 

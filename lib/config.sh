@@ -48,6 +48,28 @@ config_validate_arch_news_enabled() {
     config_validate_yes_no CHECK_ARCH_NEWS
 }
 
+config_validate_aur() {
+    config_validate_yes_no ENABLE_AUR_UPDATES || return 1
+
+    if [[ "${AUR_HELPER:-}" != "yay" ]]; then
+        printf 'Invalid AUR_HELPER value: %s\n' \
+            "${AUR_HELPER:-undefined}" >&2
+        return 1
+    fi
+
+    if [[ "${AUR_USER:-}" != "auto"
+        && ! "${AUR_USER:-}" =~ ^[a-z_][a-z0-9_-]*[$]?$ ]]; then
+        printf 'Invalid AUR_USER value: %s\n' \
+            "${AUR_USER:-undefined}" >&2
+        return 1
+    fi
+
+    if [[ "${AUR_USER:-}" == "root" ]]; then
+        printf 'Invalid AUR_USER value: root\n' >&2
+        return 1
+    fi
+}
+
 config_validate_arch_news_limit() {
     if [[ ! "${ARCH_NEWS_LIMIT:-}" =~ ^[0-9]+$ ]] \
         || ((ARCH_NEWS_LIMIT <= 0)); then
@@ -74,13 +96,14 @@ config_load() {
 
     # Une valeur héritée de l'environnement ou d'un chargement précédent
     # ne doit pas masquer l'absence de ce paramètre obligatoire dans le fichier.
-    unset ALLOW_CRITICAL_UPDATES
+    unset ALLOW_CRITICAL_UPDATES ENABLE_AUR_UPDATES AUR_HELPER AUR_USER
 
     # shellcheck disable=SC1090
     source "$config_file"
 
     config_validate_mode || return 1
     config_validate_yes_no ALLOW_CRITICAL_UPDATES || return 1
+    config_validate_aur || return 1
     config_validate_max_update_count || return 1
     config_validate_arch_news_enabled || return 1
     config_validate_arch_news_limit || return 1

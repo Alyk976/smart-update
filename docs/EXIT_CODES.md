@@ -17,6 +17,8 @@ Smart Update exposes explicit process exit codes so administrators, scripts and 
 | `28` | `INVALID_MODE` | Unsupported operating mode in configuration |
 | `29` | `POLICY_BLOCK` | Installation intentionally blocked by the policy engine |
 | `30` | `INVALID_FINAL_DECISION` | Final decision state is inconsistent or invalid |
+| `31` | `AUR_DISCOVERY_FAILED` | AUR discovery or anti-TOCTOU validation failed |
+| `32` | `AUR_UPDATE_FAILED` | Official phase succeeded but targeted yay update failed |
 
 The canonical implementation lives in:
 

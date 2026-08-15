@@ -27,31 +27,28 @@ export MOCK_PACMAN_OUTPUT_FILE="$TEST_DIR/foreign-packages.txt"
 # shellcheck source=lib/policies/30_foreign_packages.sh
 source "./lib/policies/30_foreign_packages.sh"
 
-# Aucun paquet étranger
-: >"$MOCK_PACMAN_OUTPUT_FILE"
+# Aucun paquet Foreign inconnu
+AUR_CONTEXT_ERROR=""
+UNKNOWN_FOREIGN_PACKAGES=()
 
 policy_run
 
 [[ "$POLICY_NAME" == "foreign_packages" ]]
 [[ "$POLICY_RESULT" == "ALLOW" ]]
-[[ "$POLICY_REASON" == "Aucun paquet étranger ou AUR installé." ]]
+[[ "$POLICY_REASON" == "Aucun paquet Foreign inconnu détecté." ]]
 ((${#POLICY_DETAILS[@]} == 0))
 
-# Plusieurs paquets étrangers
-cat >"$MOCK_PACMAN_OUTPUT_FILE" <<'PACKAGES'
-google-chrome
-paru
-yay
-PACKAGES
+# Plusieurs paquets Foreign absents de l'AUR
+UNKNOWN_FOREIGN_PACKAGES=(local-one local-two local-three)
 
 policy_run
 
 [[ "$POLICY_NAME" == "foreign_packages" ]]
 [[ "$POLICY_RESULT" == "WARNING" ]]
-[[ "$POLICY_REASON" == "3 paquet(s) étranger(s)/AUR détecté(s). Ils ne seront ni installés ni mis à jour par Smart Update." ]]
+[[ "$POLICY_REASON" == "3 paquet(s) Foreign absent(s) de l'AUR. Aucune modification automatique." ]]
 ((${#POLICY_DETAILS[@]} == 3))
-[[ "${POLICY_DETAILS[0]}" == "google-chrome" ]]
-[[ "${POLICY_DETAILS[1]}" == "paru" ]]
-[[ "${POLICY_DETAILS[2]}" == "yay" ]]
+[[ "${POLICY_DETAILS[0]}" == "local-one" ]]
+[[ "${POLICY_DETAILS[1]}" == "local-two" ]]
+[[ "${POLICY_DETAILS[2]}" == "local-three" ]]
 
 printf "Tous les tests de la politique des paquets étrangers ont réussi.\n"

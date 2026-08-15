@@ -60,6 +60,11 @@ assert_file /usr/bin/smart-update
 assert_file /usr/lib/smart-update/arch_news.sh
 assert_file /usr/lib/smart-update/arch_news_context.sh
 assert_file /usr/lib/smart-update/arch_news_state.sh
+assert_file /usr/lib/smart-update/aur_context.sh
+assert_file /usr/lib/smart-update/aur_phase.sh
+assert_file /usr/lib/smart-update/aur_helper.sh
+assert_file /usr/lib/smart-update/aur_updates.sh
+assert_file /usr/lib/smart-update/aur_user.sh
 assert_file /usr/lib/smart-update/config.sh
 assert_file /usr/lib/smart-update/engine.sh
 assert_file /usr/lib/smart-update/exit_codes.sh
@@ -92,6 +97,11 @@ assert_mode /usr/lib/smart-update 755
 assert_mode /usr/lib/smart-update/arch_news.sh 644
 assert_mode /usr/lib/smart-update/arch_news_context.sh 644
 assert_mode /usr/lib/smart-update/arch_news_state.sh 644
+assert_mode /usr/lib/smart-update/aur_context.sh 644
+assert_mode /usr/lib/smart-update/aur_phase.sh 644
+assert_mode /usr/lib/smart-update/aur_helper.sh 644
+assert_mode /usr/lib/smart-update/aur_updates.sh 644
+assert_mode /usr/lib/smart-update/aur_user.sh 644
 assert_mode /usr/lib/smart-update/config.sh 644
 assert_mode /usr/lib/smart-update/engine.sh 644
 assert_mode /usr/lib/smart-update/exit_codes.sh 644
@@ -119,6 +129,11 @@ assert_same_file bin/smart-update /usr/bin/smart-update
 assert_same_file lib/arch_news.sh /usr/lib/smart-update/arch_news.sh
 assert_same_file lib/arch_news_context.sh /usr/lib/smart-update/arch_news_context.sh
 assert_same_file lib/arch_news_state.sh /usr/lib/smart-update/arch_news_state.sh
+assert_same_file lib/aur_context.sh /usr/lib/smart-update/aur_context.sh
+assert_same_file lib/aur_phase.sh /usr/lib/smart-update/aur_phase.sh
+assert_same_file lib/aur_helper.sh /usr/lib/smart-update/aur_helper.sh
+assert_same_file lib/aur_updates.sh /usr/lib/smart-update/aur_updates.sh
+assert_same_file lib/aur_user.sh /usr/lib/smart-update/aur_user.sh
 assert_same_file lib/config.sh /usr/lib/smart-update/config.sh
 assert_same_file lib/engine.sh /usr/lib/smart-update/engine.sh
 assert_same_file lib/exit_codes.sh /usr/lib/smart-update/exit_codes.sh
@@ -138,6 +153,8 @@ assert_same_file systemd/smart-update.timer \
 assert_same_file config/smart-update.conf \
     /etc/smart-update/smart-update.conf
 grep -F -x -q 'ALLOW_CRITICAL_UPDATES="yes"' \
+    "$ROOTFS/etc/smart-update/smart-update.conf"
+grep -F -x -q 'ENABLE_AUR_UPDATES="yes"' \
     "$ROOTFS/etc/smart-update/smart-update.conf"
 assert_same_file config/critical-packages.conf \
     /etc/smart-update/critical-packages.conf

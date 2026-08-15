@@ -30,11 +30,12 @@ Current phase:
 - allow stable critical updates as `WARNING` only when explicitly configured;
 - preserve the decision gate before every guarded installation.
 
-Next phase:
+Current AUR phase:
 
-- add isolated discovery and installation support for stable AUR packages via
-  `yay`, without weakening official-package or decision-gate policies;
-- extend reports with source and stability decisions.
+- isolated discovery and targeted installation of stable AUR packages via
+  optional `yay`, without weakening official-package or decision-gate policies;
+- non-root AUR build identity, unknown Foreign reporting and anti-TOCTOU checks;
+- split official/AUR reporting with explicit installed, skipped and failed states.
 
 ## Later work
 

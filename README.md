@@ -28,7 +28,7 @@ Smart Update is designed to:
 
 - install stable Arch Linux updates;
 - install stable security updates;
-- eventually update stable AUR packages through `yay` in v1.1.0;
+- update stable AUR packages through optional `yay` support in v1.1.0;
 - refuse alpha, beta, RC, development, nightly, snapshot and VCS updates;
 - inspect removals, replacements and new dependencies;
 - never silently bypass safety policies;
@@ -40,16 +40,21 @@ beta, silently ignore legitimate stable updates, bypass safety rules, or block
 normal stable updates forever. This design reduces avoidable risk while keeping
 the administrator responsible for system policy and operational review.
 
+Smart Update verifies that the configured AUR helper is operational again
+after the official system upgrade before starting any AUR installation. If an
+official pacman/libalpm update makes yay temporarily unavailable, Smart Update
+stops the AUR phase and reports a partial result instead of guessing or forcing
+the installation.
+
 ---
 
 ## Current status
 
 Smart Update v1.0.0 is the first stable release of the project.
 
-Development toward v1.1.0 is adding fail-closed eligibility checks for stable
-official updates and policy-controlled handling of critical packages. Stable
-AUR support through `yay` is planned for a later v1.1.0 phase and is not yet
-implemented.
+Development toward v1.1.0 adds fail-closed eligibility checks for stable
+official updates, policy-controlled handling of critical packages, and targeted
+stable AUR updates through optional `yay` integration.
 
 The following areas are implemented and tested:
 
@@ -73,7 +78,7 @@ The following areas are implemented and tested:
 - automated installation tests using `DESTDIR`;
 - automated regression tests.
 
-The development suite currently has **35 automated tests** covering policies,
+The development suite currently has **41 automated tests** covering policies,
 wiring, runtime behavior, reports, system layout, installation, log rotation
 and systemd integration.
 
@@ -369,7 +374,10 @@ Default configuration:
 
 ```bash
 MODE="audit"
-ALLOW_AUR="no"
+ENABLE_AUR_UPDATES="yes"
+AUR_HELPER="yay"
+AUR_USER="auto"
+ALLOW_CRITICAL_UPDATES="yes"
 ALLOW_REMOVALS="no"
 ALLOW_NEW_DEPENDENCIES="no"
 ALLOW_REPLACEMENTS="no"
@@ -387,6 +395,32 @@ REPORT_DIR="/var/log/smart-update/reports"
 ```
 
 Smart Update currently performs neither automatic reboot nor automatic snapshot creation.
+
+### AUR updates through yay
+
+Smart Update uses `LC_ALL=C yay -Qua --aur --color never` for discovery. It
+classifies every `package installed_version -> candidate_version` tuple and
+targets only approved stable packages with:
+
+```bash
+yay -S --aur --needed --noconfirm --color never <approved-packages...>
+```
+
+The candidate list is discovered again immediately before installation and
+must match the analyzed tuples exactly. Smart Update never enables yay's devel
+mode. Stable normal and `-bin` packages may be updated; VCS suffixes and alpha,
+beta, RC, pre, preview, dev, nightly or snapshot versions are skipped. Unknown
+Foreign packages are reported and never modified automatically.
+
+`yay` is optional. When it is absent, official repository updates continue and
+the report marks the AUR phase `NOT_AVAILABLE`. Smart Update invokes yay from
+its already privileged process with `SUDO_USER`, `SUDO_UID`, `SUDO_GID` and
+`HOME` derived from the validated `AUR_USER` account. yay keeps Pacman
+privileged and drops its build commands to that non-root identity. `auto`
+accepts only a valid non-root `SUDO_USER`; systemd automation requires an
+explicit user name. Smart Update rechecks yay after the official upgrade and
+never enables `--devel` or `--sudoloop`. It neither creates nor requires a new
+sudoers rule.
 
 ---
 

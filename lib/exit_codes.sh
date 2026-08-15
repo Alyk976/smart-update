@@ -15,6 +15,8 @@ readonly EXIT_PACMAN_TRANSACTION_FAILED=26
 readonly EXIT_INVALID_MODE=28
 readonly EXIT_POLICY_BLOCK=29
 readonly EXIT_INVALID_FINAL_DECISION=30
+readonly EXIT_AUR_DISCOVERY_FAILED=31
+readonly EXIT_AUR_UPDATE_FAILED=32
 
 exit_code_label() {
     case "${1:-}" in
@@ -29,6 +31,8 @@ exit_code_label() {
         28) printf '%s\n' 'INVALID_MODE' ;;
         29) printf '%s\n' 'POLICY_BLOCK' ;;
         30) printf '%s\n' 'INVALID_FINAL_DECISION' ;;
+        31) printf '%s\n' 'AUR_DISCOVERY_FAILED' ;;
+        32) printf '%s\n' 'AUR_UPDATE_FAILED' ;;
         *)  printf '%s\n' 'UNKNOWN' ;;
     esac
 }
@@ -46,6 +50,8 @@ exit_code_description() {
         28) printf '%s\n' 'Mode de fonctionnement invalide.' ;;
         29) printf '%s\n' 'Installation bloquée volontairement par les politiques de sécurité.' ;;
         30) printf '%s\n' 'Décision finale invalide.' ;;
+        31) printf '%s\n' 'Échec de la découverte ou validation AUR.' ;;
+        32) printf '%s\n' 'La phase officielle a réussi mais la mise à jour AUR a échoué.' ;;
         *)  printf '%s\n' 'Code de sortie inconnu.' ;;
     esac
 }
