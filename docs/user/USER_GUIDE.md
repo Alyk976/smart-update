@@ -1,16 +1,44 @@
 # Smart Update — Guide utilisateur
 
-## Purpose
+## Objectif
 
-Smart Update analyzes an Arch Linux update transaction before deciding whether
-installation is acceptable, and in guarded mode it can install an allowed
-transaction. It does not replace Pacman and does not override administrator
-policy.
+Smart Update analyse une transaction de mise à jour Arch Linux avant de décider
+si son installation est acceptable. En mode `guarded`, il peut exécuter une
+transaction autorisée. Il ne remplace pas Pacman et ne contourne jamais la
+politique administrateur.
 
-The default configuration uses `MODE="audit"`; this mode performs analysis and
-produces a report without installing packages.
+La configuration distribuée utilise par défaut :
 
-## Run an audit
+```bash
+MODE="audit"
+ENABLE_AUR_UPDATES="no"
+```
+
+Le mode audit analyse et produit un rapport sans installer de paquet.
+
+---
+
+## Résultats principaux
+
+Les résultats contrôlés les plus importants sont :
+
+- `0` — `OK` : exécution normale ;
+- `29` — `POLICY_BLOCK` : la politique a volontairement bloqué la transaction ;
+- `34` — `MANUAL_TRANSACTION_REQUIRED` : la transaction nécessite une décision
+  Pacman que Smart Update refuse volontairement d'automatiser.
+
+Les codes `29` et `34` sont des résultats de sécurité contrôlés, pas des crashs.
+Dans l'unité systemd, ils figurent dans `SuccessExitStatus`.
+
+Les autres codes non nuls représentent une erreur technique, une incohérence ou
+un résultat partiel nécessitant une investigation. Par exemple, `31` indique un
+échec de découverte AUR ou de validation de l'identité AUR.
+
+Voir [`../EXIT_CODES.md`](../EXIT_CODES.md) pour le contrat complet.
+
+---
+
+## Lancer Smart Update
 
 ```bash
 sudo /usr/bin/smart-update
@@ -18,77 +46,117 @@ rc=$?
 printf 'Smart Update exit code: %d\n' "$rc"
 ```
 
-The most important controlled results are:
+En mode `audit`, aucune installation n'est réalisée.
 
-- `0`: analysis completed normally;
-- `29`: a policy deliberately blocked installation;
-- any other non-zero code: a technical or configuration failure.
+En mode `guarded`, une transaction ordinaire peut être installée uniquement si
+les politiques et la capacité d'exécution l'autorisent.
 
-A policy block is a successful safety outcome, not a crash.
+---
 
-## Understand the decision
+## Comprendre la décision
 
-Smart Update evaluates update count, critical packages, foreign/AUR packages,
-Arch News, removals, replacements, new packages and dependencies, and the
-forced-overwrite guard. It also rejects candidates from testing, staging,
-unstable or unknown repositories, VCS packages, and explicit pre-release
-versions.
+Smart Update évalue notamment :
 
-Removals, replacements and additions come from the prepared libalpm transaction.
-New packages and dependencies are derived from its addition list and the local
-installed package database.
+- le nombre de mises à jour ;
+- la stabilité des candidats officiels ;
+- les paquets critiques ;
+- les paquets Foreign/AUR ;
+- les annonces Arch Linux ;
+- les suppressions prévues ;
+- les remplacements ;
+- les nouveaux paquets et nouvelles dépendances ;
+- les questions interactives de transaction Pacman ;
+- les dérives entre transaction analysée et transaction prête à exécuter ;
+- la protection contre l'écrasement forcé de fichiers.
 
-The final verdict is one of:
+Le verdict final est :
 
-- `ALLOW`: no policy objected;
-- `WARNING`: review is recommended, but the decision gate permits continuation;
-- `BLOCK`: installation is forbidden.
+- `ALLOW` : aucune politique ne s'oppose à la transaction ;
+- `WARNING` : la transaction reste autorisable mais mérite une attention ;
+- `BLOCK` : l'installation est interdite.
 
-Even an allowed audit does not install packages. Installation is possible only
-in `guarded` mode and only after the final decision gate.
+Un verdict `ALLOW` ou `WARNING` n'entraîne une installation que si `MODE="guarded"`
+et si la transaction est considérée comme exécutable sans décision Pacman
+interactive non autorisée.
+
+---
 
 ## Configuration
 
-System configuration lives in:
+Les fichiers système sont :
 
 ```text
 /etc/smart-update/smart-update.conf
 /etc/smart-update/critical-packages.conf
 ```
 
-Edit configuration with `sudoedit` and retain restrictive permissions. Important
-safe defaults include:
+Modifier la configuration avec :
+
+```bash
+sudoedit /etc/smart-update/smart-update.conf
+```
+
+Valeurs de sécurité distribuées :
 
 ```bash
 MODE="audit"
+ENABLE_AUR_UPDATES="no"
+AUR_HELPER="yay"
+AUR_USER="auto"
 ALLOW_CRITICAL_UPDATES="yes"
 ALLOW_REMOVALS="no"
 ALLOW_NEW_DEPENDENCIES="no"
 ALLOW_REPLACEMENTS="no"
 ALLOW_OVERWRITE="no"
+MAX_UPDATE_COUNT=500
+MIN_ROOT_FREE_MIB=4096
+CHECK_ARCH_NEWS="yes"
+ARCH_NEWS_LIMIT=10
 AUTO_REBOOT="no"
 AUTO_SNAPSHOT="no"
 REPORT_RETENTION_DAYS=90
 ```
 
-`ALLOW_CRITICAL_UPDATES="yes"` is the normal default. It permits a critical
-package only after it passes the stable-update policy; the critical policy then
-returns `WARNING`, so the event remains visible while guarded mode may proceed.
-An administrator can explicitly select `no` to force every critical update to
-`BLOCK`. An unstable critical candidate always remains `BLOCK`, because the
-stable-update policy cannot be bypassed by this setting.
+`ALLOW_CRITICAL_UPDATES="yes"` autorise une mise à jour critique uniquement si
+elle passe d'abord les contrôles de stabilité. La politique critique renvoie
+alors `WARNING`. Avec `no`, toute mise à jour critique devient `BLOCK`.
 
-Stable official candidates from `core`, `extra` and `multilib` are eligible.
-AUR automation is disabled in the distributed configuration:
+---
+
+## Mode guarded
+
+Activer explicitement :
+
+```bash
+MODE="guarded"
+```
+
+En mode guarded, Smart Update ne lance Pacman qu'après :
+
+1. les contrôles système ;
+2. l'analyse libalpm de la transaction ;
+3. les politiques ;
+4. la décision finale ;
+5. la vérification des questions interactives ;
+6. le contrôle final de dérive de transaction.
+
+Une transaction qui nécessite une suppression conflictuelle, un remplacement,
+un choix de fournisseur ou une autre décision Pacman sensible est différée et
+retourne `34` au lieu d'être acceptée globalement.
+
+Un `BLOCK` empêche toujours l'installation.
+
+---
+
+## Mises à jour AUR
+
+AUR est désactivé par défaut :
 
 ```bash
 ENABLE_AUR_UPDATES="no"
-AUR_HELPER="yay"
-AUR_USER="auto"
 ```
 
-For a manual `sudo smart-update` invocation, stable AUR updates can be enabled
-while `auto` resolves the trustworthy non-root `SUDO_USER`:
+Pour une exécution manuelle sous `sudo`, la découverte AUR peut utiliser :
 
 ```bash
 ENABLE_AUR_UPDATES="yes"
@@ -96,41 +164,40 @@ AUR_HELPER="yay"
 AUR_USER="auto"
 ```
 
-For timer execution there is no trustworthy calling user, so activation
-requires an explicit identity:
+`auto` n'accepte qu'un `SUDO_USER` non-root valide provenant d'une invocation
+manuelle de confiance.
+
+Pour une exécution via systemd, il n'existe pas de `SUDO_USER` appelant fiable.
+Si AUR est activé, configurer explicitement un utilisateur non-root :
 
 ```bash
 ENABLE_AUR_UPDATES="yes"
 AUR_USER="username"
 ```
 
-If AUR updates are enabled but the identity cannot be resolved, Smart Update
-records the reason in the report and returns `31` before any official package
-transaction can modify the system.
+Ne jamais utiliser `root` comme `AUR_USER` et ne pas créer de règle
+`NOPASSWD: ALL` pour Smart Update.
 
-Never use `root` as `AUR_USER`, and do not grant `NOPASSWD: ALL`. Smart Update
-does not modify sudoers. It invokes yay while retaining the root context already
-required for the official update, but supplies `SUDO_USER`, `SUDO_UID`,
-`SUDO_GID` and `HOME` exclusively from the validated account database entry.
-The current implementation relies on yay to drop build commands to the
-non-root AUR identity. The `yay -S` process itself is still launched from the
-root orchestrator; the non-root build and root installation responsibilities
-are not yet isolated into separate components. AUR automation by timer must
-therefore not be considered fully hardened in Smart Update 1.1.0.
+Si AUR est activé mais que l'identité ne peut pas être résolue, Smart Update
+retourne `31` avant toute transaction officielle.
 
-Immediately before any AUR installation, Smart Update checks yay again. This
-is mandatory when the official candidate set contains `pacman`, and still
-performed otherwise. If the newly installed pacman/libalpm makes yay
-incompatible, the AUR result is `DEFERRED_HELPER_INCOMPATIBLE`, no AUR install
-is attempted, and the run returns a partial non-zero result without rolling
-back the successful official update.
+### Limite de durcissement AUR en v1.1.0
 
-Smart Update approves stable normal and `-bin` candidates. VCS packages and
-explicit alpha, beta, RC, pre, preview, dev, nightly or snapshot versions are
-skipped without preventing other stable AUR or official updates. Foreign
-packages absent from the AUR are reported but never changed.
+Les commandes `yay` en lecture seule s'exécutent sous l'identité non-root
+validée. Le chemin d'installation actuel est cependant encore lancé depuis
+l'orchestrateur privilégié et s'appuie sur `yay` pour abandonner les privilèges
+de compilation.
 
-## Logs and reports
+La v1.1.0 ne sépare donc pas encore complètement un builder AUR non-root d'un
+installateur root minimal. L'automatisation AUR par timer ne doit pas être
+présentée comme entièrement durcie.
+
+Smart Update ne crée aucune règle sudoers, n'utilise pas `--sudoloop` et
+n'active pas `--devel`.
+
+---
+
+## Logs et rapports
 
 ```text
 /var/log/smart-update/smart-update.log
@@ -138,43 +205,62 @@ packages absent from the AUR are reported but never changed.
 /var/log/smart-update/reports/
 ```
 
-Reports contain the transaction summary, policy reasons, final verdict, public
-exit code and execution duration. Smart Update deletes only report files older
-than `REPORT_RETENTION_DAYS`, which defaults to 90 days.
+Les rapports contiennent notamment :
 
-If the optional `logrotate` package is installed,
-`/etc/logrotate.d/smart-update` rotates the two logs weekly, keeps eight
-rotations and compresses old logs. It does not manage reports.
+- informations système ;
+- mises à jour détectées ;
+- paquets critiques ;
+- état Foreign/AUR ;
+- décisions des politiques ;
+- verdict final ;
+- code de sortie public ;
+- durée d'exécution.
 
-## systemd automation
+Les rapports sont conservés selon `REPORT_RETENTION_DAYS`, 90 jours par défaut.
 
-Enable the daily timer only after reviewing manual audit results:
+---
+
+## Automatisation systemd
+
+Activer le timer :
 
 ```bash
 sudo systemctl enable --now smart-update.timer
-systemctl status smart-update.timer --no-pager -l
 ```
 
-Disable automation without removing Smart Update:
+Vérifier :
 
 ```bash
-sudo systemctl disable --now smart-update.timer
+systemctl is-enabled smart-update.timer
+systemctl is-active smart-update.timer
+systemctl is-active smart-update.service
+systemctl list-timers smart-update.timer --all
 ```
 
-Exit codes `29` and `34` are listed in `SuccessExitStatus` and therefore appear
-as controlled service results. Exit code `31` and every other non-zero code
-remain failures. Consult both the service journal and the latest report when
-investigating an execution:
+État normal au repos :
 
-```bash
-sudo journalctl -u smart-update.service --no-pager
+```text
+enabled
+active
+inactive
 ```
 
-## Operational safety
+Le service est `oneshot` : il reste normalement `inactive` entre deux
+exécutions tandis que le timer reste actif.
 
-- Read Arch News before approving updates that require manual intervention.
-- Review every package removal, replacement and addition.
-- Keep `audit` mode until repeated results are understood.
-- Never delete `/var/lib/pacman/db.lck` without checking for an active package
-  manager process.
-- Do not treat `WARNING` as equivalent to risk-free operation.
+Les codes `29` et `34` sont traités par systemd comme résultats contrôlés. Le
+code `31` et les autres codes non nuls restent des échecs de service.
+
+---
+
+## Bonnes pratiques
+
+- conserver `audit` jusqu'à comprendre les rapports ;
+- passer à `guarded` uniquement après validation ;
+- lire les annonces Arch Linux lorsqu'elles signalent une intervention manuelle ;
+- examiner toute suppression, tout remplacement et toute nouvelle dépendance ;
+- ne jamais supprimer `/var/lib/pacman/db.lck` sans vérifier qu'aucun gestionnaire
+  de paquets n'est actif ;
+- ne pas considérer `WARNING` comme synonyme de risque nul ;
+- garder AUR désactivé pour l'automatisation officielle si le durcissement AUR
+  actuel ne correspond pas au niveau de confiance souhaité.
