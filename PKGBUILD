@@ -1,8 +1,9 @@
 # Maintainer: Mahadi Alykitra <Alyk976@users.noreply.github.com>
 
 pkgname=smart-update
-pkgver=1.0.0
-pkgrel=1
+pkgver=1.1.0.dev
+pkgrel=4
+_commit=dd75988aa8653352188498d23724eff636e203dc
 pkgdesc="Deterministic policy-driven update decision engine for Arch Linux"
 arch=('x86_64')
 url="https://github.com/Alyk976/smart-update"
@@ -13,7 +14,7 @@ optdepends=('logrotate: rotate Smart Update log files'
 makedepends=('gcc' 'git' 'make' 'pkgconf')
 backup=('etc/smart-update/smart-update.conf'
         'etc/smart-update/critical-packages.conf')
-source=("${pkgname}::git+https://github.com/Alyk976/smart-update.git#tag=v${pkgver}")
+source=("${pkgname}::git+https://github.com/Alyk976/smart-update.git#commit=${_commit}")
 sha256sums=('SKIP')
 
 build() {
