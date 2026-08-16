@@ -28,11 +28,12 @@ The canonical implementation lives in:
 lib/exit_codes.sh
 ```
 
-## Controlled policy blocking
+## Controlled outcomes
 
-Exit code `29` is special.
+Exit codes `29` and `34` are controlled outcomes.
 
-It means Smart Update completed enough analysis to determine that installation must not proceed. Examples include:
+Code `29` means Smart Update completed enough analysis to determine that
+installation must not proceed. Examples include:
 
 - critical updates detected;
 - forbidden package removals;
@@ -49,15 +50,23 @@ Smart Update worked as designed and refused an unsafe transaction.
 
 It is not equivalent to a process crash.
 
+Code `34` means the transaction passed the policy gate but requires a Pacman
+choice that Smart Update deliberately refuses to automate. The report records
+`MANUAL_TRANSACTION_REQUIRED`, and neither the official nor the AUR
+installation phase starts. Direct invocations still return `34` so callers can
+distinguish this result from `0` and `29`.
+
 ## systemd integration
 
 The shipped service contains:
 
 ```ini
-SuccessExitStatus=29
+SuccessExitStatus=29 34
 ```
 
-This tells systemd that both `0` and `29` are controlled outcomes for the service.
+This tells systemd that `0`, `29` and `34` are controlled outcomes for the
+service. It does not change the process exit code recorded in the report or
+returned outside systemd.
 
 As a result, a normal policy block can appear as:
 
@@ -73,7 +82,9 @@ Verdict                  : BLOCK
 Code de sortie           : 29 (POLICY_BLOCK)
 ```
 
-Technical exit codes other than `29` are not declared successful by systemd and should remain visible as service failures.
+Exit code `31` and every other non-zero code except `29` and `34` remain visible
+as service failures. In particular, an unavailable AUR identity while AUR
+updates are enabled returns `31` before any official installation can start.
 
 ## Reports
 
@@ -109,6 +120,9 @@ case "$rc" in
         ;;
     29)
         echo 'Smart Update intentionally blocked the transaction.'
+        ;;
+    34)
+        echo 'Smart Update requires a manual Pacman transaction.'
         ;;
     *)
         echo "Smart Update failed with technical exit code $rc." >&2

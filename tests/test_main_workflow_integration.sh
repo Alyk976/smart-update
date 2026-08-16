@@ -37,7 +37,7 @@ assert_exact_line '    prepare_package_replacements_context'
 assert_exact_line '    prepare_transaction_context'
 assert_exact_line '    prepare_package_candidates_context'
 assert_exact_line '    prepare_transaction_questions_context'
-assert_exact_line '    prepare_aur_context'
+assert_exact_line '    if prepare_aur_context; then'
 assert_exact_line '    engine_load_policies'
 assert_exact_line '    engine_run_policies'
 assert_exact_line '    simulate_transaction'
@@ -55,7 +55,7 @@ replacements_line=$(line_number '    prepare_package_replacements_context')
 transaction_line=$(line_number '    prepare_transaction_context')
 candidates_line=$(line_number '    prepare_package_candidates_context')
 questions_line=$(line_number '    prepare_transaction_questions_context')
-aur_prepare_line=$(line_number '    prepare_aur_context')
+aur_prepare_line=$(line_number '    if prepare_aur_context; then')
 engine_load_line=$(line_number '    engine_load_policies')
 engine_run_line=$(line_number '    engine_run_policies')
 simulation_line=$(line_number '    simulate_transaction')
@@ -110,6 +110,14 @@ if ((capability_line >= aur_execute_line)); then
     printf 'Erreur : la phase AUR peut précéder le capability gate.\n' >&2
     exit 1
 fi
+
+if ((aur_prepare_line >= install_line)); then
+    printf "Erreur : le contrôle d’identité AUR est placé après Pacman.\n" >&2
+    exit 1
+fi
+
+grep -Fq 'return "$EXIT_AUR_DISCOVERY_FAILED"' "$TARGET"
+grep -Fq 'report_finalize "$aur_status"' "$TARGET"
 
 grep -Fq 'AUR_RESULT="DEFERRED_OFFICIAL_UPDATE_REQUIRED"' "$TARGET"
 grep -Fq 'exit "$EXIT_MANUAL_TRANSACTION_REQUIRED"' "$TARGET"
@@ -178,6 +186,32 @@ decision_allows_installation
 decision_reset
 decision_allows_installation
 [[ "$DECISION_FINAL" == "ALLOW" ]]
+
+# Reproduit la barrière AUR du workflow : une identité indisponible doit
+# empêcher les deux chemins capables de modifier les paquets.
+CALLS_FILE="$TEST_DIR/package-install-calls"
+: >"$CALLS_FILE"
+EXIT_AUR_DISCOVERY_FAILED=31
+AUR_HELPER_CAPABILITY="USER_CONTEXT_UNAVAILABLE"
+AUR_PHASE_ERROR="Identité AUR indisponible."
+
+aur_phase_prepare() { return 1; }
+logger_warning() { :; }
+# shellcheck disable=SC2294
+eval "$(sed -n '/^prepare_aur_context()/,/^}/p' "$TARGET")"
+
+install_updates() { printf '%s\n' 'pacman -Syu' >>"$CALLS_FILE"; }
+aur_phase_execute() { printf '%s\n' 'yay -S' >>"$CALLS_FILE"; }
+
+if prepare_aur_context; then
+    install_updates
+    aur_phase_execute
+else
+    rc=$?
+fi
+
+[[ "$rc" -eq "$EXIT_AUR_DISCOVERY_FAILED" ]]
+[[ ! -s "$CALLS_FILE" ]]
 
 # Le mode audit retourne avant l'unique invocation de Pacman dans
 # install_updates, quelle que soit la décision autorisable.

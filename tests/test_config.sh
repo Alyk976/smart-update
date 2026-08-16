@@ -9,9 +9,11 @@ trap 'rm -rf "$TEST_DIR"' EXIT
 source "./lib/config.sh"
 
 # La configuration distribuée autorise normalement les mises à jour
-# critiques stables, tout en conservant un verdict WARNING.
+# critiques stables, tout en conservant un verdict WARNING, mais laisse
+# l'automatisation AUR désactivée jusqu'à la configuration d'une identité.
 config_load "./config/smart-update.conf"
 [[ "$ALLOW_CRITICAL_UPDATES" == "yes" ]]
+[[ "$ENABLE_AUR_UPDATES" == "no" ]]
 
 VALID_CONFIG="$TEST_DIR/valid.conf"
 

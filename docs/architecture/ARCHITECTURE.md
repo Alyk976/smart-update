@@ -133,8 +133,9 @@ under `/etc/smart-update`, persistent state under `/var/lib/smart-update`, and
 logs and reports under `/var/log/smart-update`. systemd-tmpfiles owns creation
 of the runtime directories in the Arch package.
 
-The oneshot `smart-update.service` accepts exit codes `0` and `29` as controlled
-outcomes. `smart-update.timer` schedules daily execution. The optional
+The oneshot `smart-update.service` accepts exit codes `0`, `29` and `34` as
+controlled outcomes. Exit code `31` and all other non-zero codes remain
+failures. `smart-update.timer` schedules daily execution. The optional
 `/etc/logrotate.d/smart-update` configuration rotates only the two append-only
 logs; report retention remains part of Smart Update itself.
 
@@ -151,9 +152,16 @@ logs; report retention remains part of Smart Update itself.
 - Smart Update never removes a Pacman lock automatically.
 - No automatic reboot, snapshot or forced overwrite is performed.
 - Every controlled run finalizes its report when a report exists.
-- yay is invoked from the existing root process with `SUDO_USER`, `SUDO_UID`,
-  `SUDO_GID` and `HOME` derived from the validated account. yay keeps Pacman
-  privileged and drops build commands to that identity; Smart Update never
-  creates sudoers rules or enables `--devel`/`--sudoloop`.
+- Read-only yay commands run as the validated non-root AUR identity. The
+  current installation path still launches `yay -S` from the root orchestrator
+  with `SUDO_USER`, `SUDO_UID`, `SUDO_GID` and `HOME` derived from that account,
+  and relies on yay to drop its build commands. This is not equivalent to a
+  fully separated non-root builder and minimal root installer. Timer-based AUR
+  automation must not be described as fully hardened until that split exists.
+- `AUR_USER=auto` is valid only when a manual sudo invocation supplies a
+  trustworthy non-root `SUDO_USER`. An automated service with AUR enabled
+  requires an explicit `AUR_USER`; resolution failure returns `31` before any
+  official package transaction can start.
+- Smart Update never creates sudoers rules or enables `--devel`/`--sudoloop`.
 - A yay/libalpm failure after official success defers the AUR phase, produces a
   partial non-zero result and never triggers an automatic Pacman rollback.

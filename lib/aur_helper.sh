@@ -28,6 +28,13 @@ aur_helper_capability_check() {
     local helper_path="" version_output="" help_output="" version_major=""
 
     aur_helper_capability_reset
+
+    if ! aur_user_resolve "$AUR_USER"; then
+        AUR_HELPER_CAPABILITY="USER_CONTEXT_UNAVAILABLE"
+        AUR_HELPER_CAPABILITY_ERROR="$AUR_USER_ERROR"
+        return 1
+    fi
+
     helper_path=$(command -v -- "$AUR_HELPER" 2>/dev/null || true)
     if [[ -z "$helper_path" || ! -x "$helper_path" ]]; then
         AUR_HELPER_CAPABILITY="NOT_INSTALLED"
@@ -35,12 +42,6 @@ aur_helper_capability_check() {
         return 1
     fi
     AUR_HELPER_PATH="$helper_path"
-
-    if ! aur_user_resolve "$AUR_USER"; then
-        AUR_HELPER_CAPABILITY="USER_CONTEXT_UNAVAILABLE"
-        AUR_HELPER_CAPABILITY_ERROR="$AUR_USER_ERROR"
-        return 1
-    fi
 
     if ! version_output=$(aur_user_run_readonly "$helper_path" --version 2>&1); then
         AUR_HELPER_CAPABILITY="INCOMPATIBLE"

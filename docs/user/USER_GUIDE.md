@@ -79,7 +79,16 @@ An administrator can explicitly select `no` to force every critical update to
 stable-update policy cannot be bypassed by this setting.
 
 Stable official candidates from `core`, `extra` and `multilib` are eligible.
-Stable AUR updates can also be targeted through optional `yay` integration:
+AUR automation is disabled in the distributed configuration:
+
+```bash
+ENABLE_AUR_UPDATES="no"
+AUR_HELPER="yay"
+AUR_USER="auto"
+```
+
+For a manual `sudo smart-update` invocation, stable AUR updates can be enabled
+while `auto` resolves the trustworthy non-root `SUDO_USER`:
 
 ```bash
 ENABLE_AUR_UPDATES="yes"
@@ -87,21 +96,27 @@ AUR_HELPER="yay"
 AUR_USER="auto"
 ```
 
-For a manual `sudo smart-update` invocation, `auto` uses `SUDO_USER` only when
-it identifies a valid non-root account with a usable home and shell. For timer
-execution there is no trustworthy calling user, so configure one explicitly:
+For timer execution there is no trustworthy calling user, so activation
+requires an explicit identity:
 
 ```bash
+ENABLE_AUR_UPDATES="yes"
 AUR_USER="username"
 ```
+
+If AUR updates are enabled but the identity cannot be resolved, Smart Update
+records the reason in the report and returns `31` before any official package
+transaction can modify the system.
 
 Never use `root` as `AUR_USER`, and do not grant `NOPASSWD: ALL`. Smart Update
 does not modify sudoers. It invokes yay while retaining the root context already
 required for the official update, but supplies `SUDO_USER`, `SUDO_UID`,
 `SUDO_GID` and `HOME` exclusively from the validated account database entry.
-yay therefore runs Pacman with the existing privilege and drops build commands
-to the non-root AUR identity. No second interactive sudo authentication is
-introduced, including for a timer with an explicit `AUR_USER`.
+The current implementation relies on yay to drop build commands to the
+non-root AUR identity. The `yay -S` process itself is still launched from the
+root orchestrator; the non-root build and root installation responsibilities
+are not yet isolated into separate components. AUR automation by timer must
+therefore not be considered fully hardened in Smart Update 1.1.0.
 
 Immediately before any AUR installation, Smart Update checks yay again. This
 is mandatory when the official candidate set contains `pacman`, and still
@@ -146,9 +161,10 @@ Disable automation without removing Smart Update:
 sudo systemctl disable --now smart-update.timer
 ```
 
-Exit code `29` is listed in `SuccessExitStatus` and therefore appears as a
-controlled service result. Consult both the service journal and the latest
-report when investigating an execution:
+Exit codes `29` and `34` are listed in `SuccessExitStatus` and therefore appear
+as controlled service results. Exit code `31` and every other non-zero code
+remain failures. Consult both the service journal and the latest report when
+investigating an execution:
 
 ```bash
 sudo journalctl -u smart-update.service --no-pager

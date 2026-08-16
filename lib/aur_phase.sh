@@ -33,8 +33,13 @@ aur_phase_prepare() {
 
     if ! aur_helper_capability_check; then
         mapfile -t UNKNOWN_FOREIGN_PACKAGES < <(pacman -Qqm 2>/dev/null || true)
-        AUR_RESULT="NOT_AVAILABLE"
         AUR_PHASE_ERROR="$AUR_HELPER_CAPABILITY_ERROR"
+        if [[ "$AUR_HELPER_CAPABILITY" == "USER_CONTEXT_UNAVAILABLE" ]]; then
+            AUR_RESULT="FAILED"
+            AUR_PHASE_ERROR="Identité AUR indisponible : ${AUR_HELPER_CAPABILITY_ERROR}"
+            return 1
+        fi
+        AUR_RESULT="NOT_AVAILABLE"
         return 0
     fi
 

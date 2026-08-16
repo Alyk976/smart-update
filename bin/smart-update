@@ -331,11 +331,15 @@ prepare_aur_context() {
     logger_info "Analyse des paquets AUR et Foreign."
     if ! aur_phase_prepare; then
         logger_warning "$AUR_PHASE_ERROR"
+        if [[ "$AUR_HELPER_CAPABILITY" == "USER_CONTEXT_UNAVAILABLE" ]]; then
+            return "$EXIT_AUR_DISCOVERY_FAILED"
+        fi
     elif [[ -n "$AUR_PHASE_ERROR" ]]; then
         logger_warning "$AUR_PHASE_ERROR"
     else
         logger_info "${AUR_DETECTED_COUNT} mise(s) à jour AUR détectée(s), ${#AUR_APPROVED_PACKAGES[@]} stable(s) approuvée(s)."
     fi
+    return 0
 }
 
 persist_arch_news_context() {
@@ -425,7 +429,13 @@ main() {
     prepare_transaction_context
     prepare_package_candidates_context
     prepare_transaction_questions_context
-    prepare_aur_context
+    if prepare_aur_context; then
+        :
+    else
+        aur_status=$?
+        report_finalize "$aur_status"
+        exit "$aur_status"
+    fi
     APPROVED_TRANSACTION_SNAPSHOT=$(transaction_snapshot)
     engine_load_policies
     engine_run_policies

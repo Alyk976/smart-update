@@ -133,11 +133,15 @@ The service must execute:
 ExecStart=/usr/bin/smart-update
 ```
 
-A policy block (`29`) is declared as a controlled successful status through:
+Policy blocking (`29`) and a transaction deliberately deferred for manual
+execution (`34`) are declared as controlled successful statuses through:
 
 ```text
-SuccessExitStatus=29
+SuccessExitStatus=29 34
 ```
+
+All other non-zero exit codes, including AUR discovery failure `31`, remain
+service failures.
 
 Manual service run:
 

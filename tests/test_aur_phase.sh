@@ -59,6 +59,21 @@ MOCK_CAPABILITY_STATUS="NOT_INSTALLED"
 aur_phase_prepare
 [[ "$AUR_RESULT" == "NOT_AVAILABLE" ]]
 [[ "$AUR_PHASE_ERROR" == "mock capability failure" ]]
+
+# Une identité AUR impossible à résoudre est fatale lorsque l'AUR est activé.
+MOCK_CAPABILITY_STATUS="USER_CONTEXT_UNAVAILABLE"
+if aur_phase_prepare; then
+    printf 'Erreur : identité AUR indisponible convertie en succès.\n' >&2
+    exit 1
+else
+    rc=$?
+fi
+[[ "$rc" -eq 1 ]]
+[[ "$AUR_RESULT" == "FAILED" ]]
+[[ "$AUR_PHASE_ERROR" == \
+    "Identité AUR indisponible : mock capability failure" ]]
+[[ ! -s "$INSTALL_CALLS_FILE" ]]
+
 AUR_HELPER_PATH="yay"
 MOCK_CAPABILITY_STATUS="READY"
 

@@ -28,6 +28,8 @@ if aur_user_resolve root; then
     exit 1
 fi
 
+# Une identité explicite valide ne dépend pas de sudo.
+unset SUDO_USER
 aur_user_resolve mahadi
 [[ "$AUR_EXEC_USER" == "mahadi" ]]
 [[ "$AUR_EXEC_UID" == "1000" ]]
@@ -66,16 +68,32 @@ install_function=$(sed -n '/^aur_user_run()/,/^}/p' lib/aur_user.sh)
 [[ "$install_function" != *runuser* ]]
 [[ "$install_function" == *'SUDO_USER="$AUR_EXEC_USER"'* ]]
 
+# Une exécution manuelle sous sudo peut résoudre auto depuis SUDO_USER.
 SUDO_USER=mahadi
 export SUDO_USER
 aur_user_resolve auto
 [[ "$AUR_EXEC_USER" == "mahadi" ]]
 
+# Un service systemd root n'a pas de SUDO_USER fiable : auto doit échouer.
 unset SUDO_USER
 if aur_user_resolve auto; then
     printf 'Erreur : auto sans SUDO_USER a inventé un utilisateur.\n' >&2
     exit 1
 fi
 [[ -z "$AUR_EXEC_USER" ]]
+[[ "$AUR_USER_ERROR" == "AUR_USER=auto sans SUDO_USER non-root fiable." ]]
+
+# La capacité AUR valide l'identité avant même la disponibilité du helper,
+# afin qu'un service automatisé ne masque pas AUR_USER=auto en NOT_AVAILABLE.
+# shellcheck source=lib/aur_helper.sh
+source "./lib/aur_helper.sh"
+AUR_HELPER="definitely-missing-yay"
+AUR_USER="auto"
+if aur_helper_capability_check; then
+    printf 'Erreur : capacité AUR acceptée sans identité fiable.\n' >&2
+    exit 1
+fi
+[[ "$AUR_HELPER_CAPABILITY" == "USER_CONTEXT_UNAVAILABLE" ]]
+[[ "$AUR_HELPER_CAPABILITY_ERROR" == "$AUR_USER_ERROR" ]]
 
 printf 'Tous les tests de résolution AUR_USER ont réussi.\n'

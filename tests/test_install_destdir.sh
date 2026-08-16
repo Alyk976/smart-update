@@ -160,7 +160,7 @@ assert_same_file config/smart-update.conf \
     /etc/smart-update/smart-update.conf
 grep -F -x -q 'ALLOW_CRITICAL_UPDATES="yes"' \
     "$ROOTFS/etc/smart-update/smart-update.conf"
-grep -F -x -q 'ENABLE_AUR_UPDATES="yes"' \
+grep -F -x -q 'ENABLE_AUR_UPDATES="no"' \
     "$ROOTFS/etc/smart-update/smart-update.conf"
 assert_same_file config/critical-packages.conf \
     /etc/smart-update/critical-packages.conf

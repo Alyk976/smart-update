@@ -385,7 +385,7 @@ Default configuration:
 
 ```bash
 MODE="audit"
-ENABLE_AUR_UPDATES="yes"
+ENABLE_AUR_UPDATES="no"
 AUR_HELPER="yay"
 AUR_USER="auto"
 ALLOW_CRITICAL_UPDATES="yes"
@@ -423,15 +423,20 @@ mode. Stable normal and `-bin` packages may be updated; VCS suffixes and alpha,
 beta, RC, pre, preview, dev, nightly or snapshot versions are skipped. Unknown
 Foreign packages are reported and never modified automatically.
 
-`yay` is optional. When it is absent, official repository updates continue and
-the report marks the AUR phase `NOT_AVAILABLE`. Smart Update invokes yay from
-its already privileged process with `SUDO_USER`, `SUDO_UID`, `SUDO_GID` and
-`HOME` derived from the validated `AUR_USER` account. yay keeps Pacman
-privileged and drops its build commands to that non-root identity. `auto`
-accepts only a valid non-root `SUDO_USER`; systemd automation requires an
-explicit user name. Smart Update rechecks yay after the official upgrade and
-never enables `--devel` or `--sudoloop`. It neither creates nor requires a new
-sudoers rule.
+`yay` is optional and AUR automation is disabled by default. When the helper is
+absent, official repository updates continue and the report marks the AUR phase
+`NOT_AVAILABLE`. `auto` accepts only a valid non-root `SUDO_USER` from a manual
+sudo invocation; systemd automation requires an explicit user name. If AUR is
+enabled but that identity cannot be resolved, Smart Update returns `31` before
+any official installation starts.
+
+Read-only yay commands run as the validated user. The current `yay -S` path is
+still launched from the privileged orchestrator with `SUDO_USER`, `SUDO_UID`,
+`SUDO_GID` and `HOME` derived from that account, relying on yay to drop build
+commands. Smart Update 1.1.0 does not yet separate a complete non-root builder
+from a minimal root installer, so timer-based AUR automation is not presented
+as fully hardened. Smart Update rechecks yay after the official upgrade, never
+enables `--devel` or `--sudoloop`, and creates no sudoers rule.
 
 ---
 
@@ -495,10 +500,15 @@ Smart Update exposes a stable public exit-code contract.
 | `28` | `INVALID_MODE` | Invalid operating mode |
 | `29` | `POLICY_BLOCK` | Installation intentionally blocked by policies |
 | `30` | `INVALID_FINAL_DECISION` | Invalid final decision state |
+| `31` | `AUR_DISCOVERY_FAILED` | AUR discovery or identity validation failed |
+| `32` | `AUR_UPDATE_FAILED` | Targeted AUR update failed after official success |
+| `33` | `OFFICIAL_TRANSACTION_DRIFT` | Official transaction changed before installation |
+| `34` | `MANUAL_TRANSACTION_REQUIRED` | Pacman choices require manual execution |
 
 See [`docs/EXIT_CODES.md`](docs/EXIT_CODES.md) for operational guidance.
 
-The systemd service declares exit code `29` as a successful controlled outcome, so a normal policy block does not make the unit appear crashed.
+The systemd service declares exit codes `29` and `34` as controlled successful
+outcomes. Exit code `31` and every other non-zero code remain service failures.
 
 ---
 
