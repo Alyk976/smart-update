@@ -45,6 +45,61 @@ readonly STABILITY_MODULE="${LIB_DIR}/stability.sh"
 readonly VERSION_MODULE="${LIB_DIR}/version.sh"
 readonly TRANSACTION_QUESTIONS_MODULE="${LIB_DIR}/transaction_questions.sh"
 
+print_usage() {
+    cat <<'EOF'
+Usage : smart-update [OPTION]
+
+Exécute le workflow sécurisé de mise à jour lorsqu'aucune option n'est fournie.
+
+Options :
+  -h, --help       Afficher cette aide puis quitter
+  -V, --version    Afficher la version puis quitter
+EOF
+}
+
+dispatch_cli() {
+    if (($# == 0)); then
+        return 0
+    fi
+
+    case "$1" in
+        -V | --version)
+            if (($# != 1)); then
+                printf 'Argument inattendu : %s\n' "$2" >&2
+                return 2
+            fi
+            if [[ ! -r "$VERSION_MODULE" ]]; then
+                printf 'Module Smart Update absent : %s\n' "$VERSION_MODULE" >&2
+                return 1
+            fi
+            # shellcheck source=lib/version.sh
+            source "$VERSION_MODULE"
+            smart_update_package_version
+            exit 0
+            ;;
+        -h | --help)
+            if (($# != 1)); then
+                printf 'Argument inattendu : %s\n' "$2" >&2
+                return 2
+            fi
+            print_usage
+            exit 0
+            ;;
+        -*)
+            printf 'Option inconnue : %s\n' "$1" >&2
+            printf 'Utilisez smart-update --help pour afficher les options disponibles.\n' >&2
+            return 2
+            ;;
+        *)
+            printf 'Argument inattendu : %s\n' "$1" >&2
+            printf 'Utilisez smart-update --help pour afficher les options disponibles.\n' >&2
+            return 2
+            ;;
+    esac
+}
+
+dispatch_cli "$@" || exit $?
+
 if [[ -x "${TOOLS_DIR}/package-removals-helper/package-removals-helper" ]]; then
     readonly PACKAGE_REMOVALS_HELPER="${TOOLS_DIR}/package-removals-helper/package-removals-helper"
 else
