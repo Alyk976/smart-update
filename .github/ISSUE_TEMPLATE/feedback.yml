@@ -1,0 +1,66 @@
+name: User feedback
+
+description: Share your experience, ideas, suggestions, or general feedback about Smart Update.
+title: "[Feedback] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for using Smart Update. Your feedback helps improve the project.
+
+        For reproducible bugs, please include enough technical context to understand what happened. Do not post passwords, tokens, private keys, or other secrets.
+
+  - type: dropdown
+    id: feedback_type
+    attributes:
+      label: Type of feedback
+      description: What kind of feedback are you sharing?
+      options:
+        - General experience
+        - Improvement suggestion
+        - Feature idea
+        - Documentation feedback
+        - Safety / policy behavior
+        - Packaging / installation
+        - systemd / automation
+        - AUR behavior
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: feedback
+    attributes:
+      label: Your feedback
+      description: Tell us what worked well, what was confusing, or what you would like to see improved.
+      placeholder: Describe your experience with Smart Update...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Add relevant context such as Smart Update version, Arch Linux environment, operating mode, or commands used.
+      placeholder: |
+        Smart Update version: 1.1.0-1
+        Mode: audit / guarded
+        Installation method: package / source
+        Relevant context: ...
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output or report excerpt
+      description: Optional. Paste only the relevant portion and remove sensitive information.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I have removed passwords, tokens, private keys, and other sensitive information.
+          required: true
+        - label: I understand this form is for feedback and suggestions; security-sensitive reports should not contain exploit details or secrets.
+          required: true
