@@ -2,8 +2,8 @@
 
 pkgname=smart-update
 pkgver=1.1.0.dev
-pkgrel=4
-_commit=dd75988aa8653352188498d23724eff636e203dc
+pkgrel=5
+_commit=a7494b7ab6161abfb7943cb2bf1799de3bbf9c2f
 pkgdesc="Deterministic policy-driven update decision engine for Arch Linux"
 arch=('x86_64')
 url="https://github.com/Alyk976/smart-update"
