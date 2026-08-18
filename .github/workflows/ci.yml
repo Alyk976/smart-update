@@ -33,6 +33,9 @@ jobs:
       - name: Run ShellCheck
         run: shellcheck -x bin/smart-update lib/*.sh lib/policies/*.sh tests/*.sh
 
+      - name: Check source whitespace
+        run: git diff --check
+
       - name: Build and install Smart Update
         run: make install
 
@@ -44,6 +47,3 @@ jobs:
           systemd-analyze verify
           /usr/lib/systemd/system/smart-update.service
           /usr/lib/systemd/system/smart-update.timer
-
-      - name: Check whitespace
-        run: git diff --check
