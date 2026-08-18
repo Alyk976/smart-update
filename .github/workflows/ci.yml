@@ -22,7 +22,7 @@ jobs:
       - name: Install Arch Linux toolchain
         run: >-
           pacman -Syu --noconfirm --needed
-          git base-devel shellcheck pacman-contrib libxml2 systemd
+          git base-devel shellcheck ripgrep pacman-contrib libxml2 systemd
 
       - name: Check out repository
         uses: actions/checkout@v4
@@ -33,14 +33,11 @@ jobs:
       - name: Run ShellCheck
         run: shellcheck -x bin/smart-update lib/*.sh lib/policies/*.sh tests/*.sh
 
+      - name: Build and install Smart Update
+        run: make install
+
       - name: Run automated test suite
         run: ./tests/run_tests.sh
-
-      - name: Build native helper
-        run: make helper
-
-      - name: Validate installation layout
-        run: make install
 
       - name: Verify systemd units
         run: >-
