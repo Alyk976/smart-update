@@ -1,3 +1,15 @@
+<p align="center">
+  <img src="docs/assets/smart-update-banner.svg" alt="Smart Update — Think first. Update safely." width="1000">
+</p>
+
+<p align="center">
+  <a href="https://github.com/Alyk976/smart-update/actions/workflows/ci.yml"><img src="https://github.com/Alyk976/smart-update/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/Alyk976/smart-update/releases/latest"><img src="https://img.shields.io/github/v/release/Alyk976/smart-update?display_name=tag" alt="Latest release"></a>
+  <a href="https://github.com/Alyk976/smart-update/blob/master/LICENSE"><img src="https://img.shields.io/github/license/Alyk976/smart-update" alt="License"></a>
+  <img src="https://img.shields.io/badge/tests-46%20automated-success" alt="46 automated tests">
+  <a href="https://archlinux.org/"><img src="https://img.shields.io/badge/Arch%20Linux-supported-1793D1?logo=archlinux&logoColor=white" alt="Arch Linux"></a>
+</p>
+
 # Smart Update
 
 > **Think first. Update safely.**
@@ -6,11 +18,58 @@ Smart Update is a deterministic, policy-driven update decision engine for Arch L
 
 Instead of blindly running `pacman -Syu`, Smart Update inspects the planned transaction, evaluates safety policies and decides whether the operation may continue.
 
-- `ALLOW`: the transaction may continue in guarded mode.
-- `WARNING`: the transaction may continue, but administrator review is recommended.
-- `BLOCK`: installation is forbidden.
+| Decision | Meaning |
+|---|---|
+| `ALLOW` | The transaction may continue in guarded mode. |
+| `WARNING` | The transaction may continue, but administrator review is recommended. |
+| `BLOCK` | Installation is forbidden. |
 
 > **Policies decide. The administrator remains in control.**
+
+---
+
+## Why Smart Update?
+
+Arch Linux deliberately gives administrators direct control over system updates. Smart Update does not replace Pacman and does not pretend to make upstream packages risk-free. It adds a deterministic decision layer before installation so that update policy is explicit, inspectable and repeatable.
+
+Smart Update is built for administrators who want to:
+
+- inspect a planned package transaction before changing the machine;
+- make removals, replacements and new dependencies visible;
+- surface critical-package updates and Arch Linux News context;
+- reject explicit development, prerelease, nightly, snapshot and VCS candidates;
+- stop transactions that require interactive package-manager decisions;
+- detect transaction drift before guarded installation;
+- keep structured logs, reports and stable exit codes for automation.
+
+---
+
+## Quick start
+
+Clone the project, run the test suite, install it, then start with the default **audit** mode:
+
+```bash
+git clone https://github.com/Alyk976/smart-update.git
+cd smart-update
+./tests/run_tests.sh
+sudo make install
+sudo systemctl daemon-reload
+sudo smart-update
+```
+
+The distributed configuration defaults to `MODE="audit"`, so the first run analyzes the system and produces a decision without installing packages.
+
+For package builds, guarded mode, systemd automation and complete configuration details, see [`docs/INSTALLATION.md`](docs/INSTALLATION.md) and [`docs/user/USER_GUIDE.md`](docs/user/USER_GUIDE.md).
+
+---
+
+## How the decision gate works
+
+<p align="center">
+  <img src="docs/assets/smart-update-decision-model.svg" alt="Illustrative Smart Update policy decision model" width="1000">
+</p>
+
+The visual above is an **illustrative policy flow**, not a captured terminal session. The authoritative behavior is defined by the policy engine, tests and runtime reports.
 
 ---
 
@@ -28,6 +87,8 @@ Release validation includes:
 - successful guarded-mode installation of a large real Arch Linux transaction.
 
 The Arch package version is `1.1.0-1` and the Git release tag is `v1.1.0`.
+
+See the [v1.1.0 release notes](docs/releases/v1.1.0.md) or [latest GitHub release](https://github.com/Alyk976/smart-update/releases/latest).
 
 ---
 
@@ -279,13 +340,18 @@ systemd-analyze verify systemd/smart-update.service systemd/smart-update.timer
 git diff --check
 ```
 
+GitHub Actions runs the same core validation automatically in an Arch Linux container for pushes and pull requests targeting `master`.
+
 Project documentation:
 
 - [`docs/INSTALLATION.md`](docs/INSTALLATION.md)
 - [`docs/EXIT_CODES.md`](docs/EXIT_CODES.md)
 - [`docs/user/USER_GUIDE.md`](docs/user/USER_GUIDE.md)
 - [`docs/architecture/ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md)
+- [`docs/development/CONTRIBUTING.md`](docs/development/CONTRIBUTING.md)
 - [`docs/development/ROADMAP.md`](docs/development/ROADMAP.md)
+
+Feedback and reproducible issue reports are welcome through [GitHub Issues](https://github.com/Alyk976/smart-update/issues).
 
 ---
 
