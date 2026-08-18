@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc">
+  <title id="title">Smart Update</title>
+  <desc id="desc">Think first. Update safely. Policy-driven Arch Linux update decisions.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#172554"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#22c55e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="320" rx="28" fill="url(#bg)"/>
+  <circle cx="1040" cy="52" r="150" fill="#2563eb" opacity="0.10"/>
+  <circle cx="1120" cy="280" r="190" fill="#16a34a" opacity="0.08"/>
+
+  <g transform="translate(76 64)">
+    <path d="M96 0 176 30v62c0 54-30 92-80 116C46 184 16 146 16 92V30L96 0Z" fill="none" stroke="url(#accent)" stroke-width="10"/>
+    <path d="m58 99 25 25 52-57" fill="none" stroke="#f8fafc" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <text x="310" y="112" fill="#f8fafc" font-family="Inter,Segoe UI,Helvetica,Arial,sans-serif" font-size="58" font-weight="700">Smart Update</text>
+  <text x="312" y="158" fill="#cbd5e1" font-family="Inter,Segoe UI,Helvetica,Arial,sans-serif" font-size="24">Think first. Update safely.</text>
+  <text x="312" y="204" fill="#94a3b8" font-family="Inter,Segoe UI,Helvetica,Arial,sans-serif" font-size="20">Policy-driven update decisions for Arch Linux</text>
+
+  <g font-family="Inter,Segoe UI,Helvetica,Arial,sans-serif" font-size="16" font-weight="700">
+    <rect x="312" y="236" width="104" height="38" rx="19" fill="#16a34a" opacity="0.18"/>
+    <text x="339" y="261" fill="#86efac">ALLOW</text>
+    <rect x="430" y="236" width="122" height="38" rx="19" fill="#d97706" opacity="0.18"/>
+    <text x="450" y="261" fill="#fcd34d">WARNING</text>
+    <rect x="566" y="236" width="104" height="38" rx="19" fill="#dc2626" opacity="0.18"/>
+    <text x="594" y="261" fill="#fca5a5">BLOCK</text>
+  </g>
+</svg>
