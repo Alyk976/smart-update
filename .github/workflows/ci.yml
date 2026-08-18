@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Arch Linux validation
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+
+    steps:
+      - name: Install Arch Linux toolchain
+        run: >-
+          pacman -Syu --noconfirm --needed
+          git base-devel shellcheck pacman-contrib libxml2 systemd
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate Bash syntax
+        run: bash -n bin/smart-update lib/*.sh lib/policies/*.sh tests/*.sh
+
+      - name: Run ShellCheck
+        run: shellcheck -x bin/smart-update lib/*.sh lib/policies/*.sh tests/*.sh
+
+      - name: Run automated test suite
+        run: ./tests/run_tests.sh
+
+      - name: Build native helper
+        run: make helper
+
+      - name: Validate installation layout
+        run: make install
+
+      - name: Verify systemd units
+        run: >-
+          systemd-analyze verify
+          /usr/lib/systemd/system/smart-update.service
+          /usr/lib/systemd/system/smart-update.timer
+
+      - name: Check whitespace
+        run: git diff --check
