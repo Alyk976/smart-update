@@ -19,6 +19,10 @@ policy_run() {
     fi
 
     POLICY_RESULT="WARNING"
-    POLICY_REASON="${#UNKNOWN_FOREIGN_PACKAGES[@]} paquet(s) Foreign absent(s) de l'AUR. Aucune modification automatique."
+    if [[ "${AUR_RESULT:-}" == "DISABLED" ]]; then
+        POLICY_REASON="${#UNKNOWN_FOREIGN_PACKAGES[@]} paquet(s) Foreign détecté(s). Recherche AUR désactivée ; classification AUR non effectuée. Aucune modification automatique."
+    else
+        POLICY_REASON="${#UNKNOWN_FOREIGN_PACKAGES[@]} paquet(s) Foreign absent(s) de l'AUR. Aucune modification automatique."
+    fi
     POLICY_DETAILS=("${UNKNOWN_FOREIGN_PACKAGES[@]}")
 }
