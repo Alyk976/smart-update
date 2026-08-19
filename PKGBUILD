@@ -1,7 +1,7 @@
 # Maintainer: Mahadi Alykitra <Alyk976@users.noreply.github.com>
 
 pkgname=smart-update
-pkgver=1.1.0
+pkgver=1.1.1
 pkgrel=1
 pkgdesc="Deterministic policy-driven update decision engine for Arch Linux"
 arch=('x86_64')
