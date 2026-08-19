@@ -75,7 +75,7 @@ The visual above is an **illustrative policy flow**, not a captured terminal ses
 
 ## Current stable release
 
-**Smart Update v1.1.0** is the current stable release.
+**Smart Update v1.1.1** is the current stable maintenance release.
 
 Release validation includes:
 
@@ -84,11 +84,12 @@ Release validation includes:
 - protected real-machine audit validation;
 - protected real-machine guarded/block validation;
 - systemd exit-code validation;
-- successful guarded-mode installation of a large real Arch Linux transaction.
+- successful guarded-mode installation of a large real Arch Linux transaction;
+- regression coverage for accurate Foreign-package reporting when AUR lookup is disabled.
 
-The Arch package version is `1.1.0-1` and the Git release tag is `v1.1.0`.
+The Arch package version is `1.1.1-1` and the Git release tag is `v1.1.1`.
 
-See the [v1.1.0 release notes](docs/releases/v1.1.0.md) or [latest GitHub release](https://github.com/Alyk976/smart-update/releases/latest).
+See the [v1.1.1 release notes](docs/releases/v1.1.1.md) or [latest GitHub release](https://github.com/Alyk976/smart-update/releases/latest).
 
 ---
 
@@ -216,9 +217,9 @@ If AUR identity resolution fails, Smart Update returns `31` before any official 
 
 ### Security note
 
-Smart Update v1.1.0 does not yet provide a fully separated non-root AUR builder plus minimal root installer. Read-only `yay` operations use the validated non-root identity, but the current installation path still relies on `yay` to drop build privileges from the privileged orchestrator.
+Smart Update v1.1.1 does not yet provide a fully separated non-root AUR builder plus minimal root installer. Read-only `yay` operations use the validated non-root identity, but the current installation path still relies on `yay` to drop build privileges from the privileged orchestrator.
 
-For this reason, timer-based AUR automation is **not presented as fully hardened** in v1.1.0. Official Arch updates remain independently supported with AUR disabled.
+For this reason, timer-based AUR automation is **not presented as fully hardened** in v1.1.1. Official Arch updates remain independently supported with AUR disabled.
 
 ---
 
@@ -258,7 +259,7 @@ See [`docs/EXIT_CODES.md`](docs/EXIT_CODES.md) for details.
 git clone https://github.com/Alyk976/smart-update.git
 cd smart-update
 makepkg --cleanbuild --check
-sudo pacman -U smart-update-1.1.0-1-x86_64.pkg.tar.zst
+sudo pacman -U smart-update-1.1.1-1-x86_64.pkg.tar.zst
 ```
 
 ### Install from source
