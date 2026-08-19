@@ -2,7 +2,7 @@
 
 ## État actuel
 
-Version stable : `v1.1.0`
+Version stable : `v1.1.1`
 
 Smart Update est désormais une version stable validée sur Arch Linux. Le moteur
 analyse les mises à jour, prépare un contexte transactionnel libalpm, applique
@@ -35,6 +35,17 @@ l'installation qu'après la décision finale.
 - paquet Arch natif avec préservation de la configuration sous `/etc` ;
 - contrat public de codes de sortie jusqu'au code `34`.
 
+## Correctif livré en v1.1.1
+
+- correction du reporting des paquets Foreign lorsque `ENABLE_AUR_UPDATES="no"` ;
+- les paquets Foreign ne sont plus présentés comme « absents de l'AUR » lorsque
+  la classification AUR n'a pas été exécutée ;
+- le message indique désormais explicitement que la recherche AUR est désactivée
+  et qu'aucune modification automatique n'est effectuée ;
+- comportement d'installation, politiques, codes de sortie et modèle de sécurité
+  inchangés ;
+- test de régression ajouté pour le cas AUR désactivé.
+
 ## Validation v1.1.0
 
 - 46 tests automatisés réussis ;
@@ -49,7 +60,22 @@ l'installation qu'après la décision finale.
 - exécution `guarded` réussie d'une mise à jour complète de 311 paquets avec
   code de sortie `0` ;
 - redémarrage validé sur le nouveau noyau après cette mise à jour ;
-- timer systemd validé `enabled` et `active`, service oneshot `inactive` au repos.
+- timer systemd validé `enabled` et `active`, service oneshot `inactive` au repos ;
+- exécution automatique réelle via le timer systemd validée avec une transaction
+  ordinaire de 10 mises à jour officielles terminée avec le code `0`.
+
+## Validation v1.1.1
+
+- test ciblé `test_foreign_packages_policy.sh` réussi ;
+- suite complète : 46 tests réussis sur 46, 0 échec ;
+- construction propre avec `makepkg --cleanbuild --check` ;
+- paquet `smart-update 1.1.1-1` construit et installé sur machine réelle ;
+- configuration locale conservée : `MODE="guarded"`,
+  `ENABLE_AUR_UPDATES="no"`, `AUR_USER="mwalim_boro"` ;
+- timer systemd conservé `enabled` et `active` après mise à niveau ;
+- paquet publié avec SHA-256
+  `bba0bda069f44d48497be52f52b2279e123afbef69fab9afa3d8212f4d2d28d8` ;
+- release GitHub `v1.1.1` publiée avec le paquet et `SHA256SUMS`.
 
 ## Invariants de sécurité
 
@@ -67,6 +93,6 @@ l'installation qu'après la décision finale.
 
 ## Prochaine étape
 
-La branche `master` reste la base de développement après `v1.1.0`. Les nouvelles
+La branche `master` reste la base de développement après `v1.1.1`. Les nouvelles
 fonctionnalités appartiendront à la prochaine version mineure ; une `v1.1.x`
-sera réservée aux correctifs nécessaires de la ligne stable 1.1.
+restera réservée aux correctifs nécessaires de la ligne stable 1.1.
