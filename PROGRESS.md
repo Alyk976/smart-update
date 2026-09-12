@@ -9,6 +9,12 @@ analyse les mises à jour, prépare un contexte transactionnel libalpm, applique
 les politiques, vérifie la capacité d'exécution non interactive et n'autorise
 l'installation qu'après la décision finale.
 
+## En développement pour v1.2
+
+Notifications Telegram facultatives après finalisation du rapport, désactivées
+par défaut. Envoi borné à 15 secondes, token dans un fichier protégé, échec
+de livraison sans modification du verdict ni du code de sortie.
+
 ## Fonctionnalités livrées en v1.1.0
 
 - modes `audit` et `guarded` ;

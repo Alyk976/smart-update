@@ -9,8 +9,10 @@ url="https://github.com/Alyk976/smart-update"
 license=('Apache-2.0')
 depends=('bash' 'pacman' 'pacman-contrib' 'libxml2' 'systemd')
 optdepends=('logrotate: rotate Smart Update log files'
-            'yay: update stable AUR packages')
+            'yay: update stable AUR packages'
+            'jq: optional Telegram notifications')
 makedepends=('gcc' 'git' 'make' 'pkgconf')
+checkdepends=('jq')
 backup=('etc/smart-update/smart-update.conf'
         'etc/smart-update/critical-packages.conf')
 source=("${pkgname}::git+https://github.com/Alyk976/smart-update.git#tag=v${pkgver}")

@@ -22,7 +22,7 @@ jobs:
       - name: Install Arch Linux toolchain
         run: >-
           pacman -Syu --noconfirm --needed
-          git base-devel shellcheck ripgrep pacman-contrib libxml2 systemd
+          git base-devel shellcheck ripgrep pacman-contrib libxml2 systemd jq
 
       - name: Check out repository
         uses: actions/checkout@v4

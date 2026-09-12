@@ -56,6 +56,7 @@ assert_same_file() {
     }
 }
 
+assert_file /usr/lib/smart-update/telegram.sh
 assert_file /usr/bin/smart-update
 assert_file /usr/lib/smart-update/arch_news.sh
 assert_file /usr/lib/smart-update/arch_news_context.sh

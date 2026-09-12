@@ -35,6 +35,7 @@ LIB_MODULES := \
 	lib/package_removals.sh \
 	lib/package_replacements.sh \
 	lib/report.sh \
+	lib/telegram.sh \
 	lib/stability.sh \
 	lib/system_checks.sh \
 	lib/transaction_questions.sh \

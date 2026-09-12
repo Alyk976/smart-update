@@ -264,3 +264,5 @@ code `31` et les autres codes non nuls restent des échecs de service.
 - ne pas considérer `WARNING` comme synonyme de risque nul ;
 - garder AUR désactivé pour l'automatisation officielle si le durcissement AUR
   actuel ne correspond pas au niveau de confiance souhaité.
+
+Notifications facultatives : [configuration Telegram](TELEGRAM.md).
