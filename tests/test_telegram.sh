@@ -8,13 +8,14 @@ source ./lib/telegram.sh
 # shellcheck source=lib/exit_codes.sh
 source ./lib/exit_codes.sh
 logger_error() { printf '%s\n' "$*" >> "$TEST_DIR/errors"; }
+API_RESPONSE='{"ok":true}'
 # Simulated API only: assert request security and capture delivery.
 curl() {
-    [[ "$1" == '-q' ]]
+    [[ "$1" == '-q' ]] || return 1
     printf '%s\n' "$@" > "$TEST_DIR/args"
     cat > "$TEST_DIR/request"
     printf '.\n' >> "$TEST_DIR/calls"
-    printf '%s\n' "${API_RESPONSE:-{\"ok\":true}}"
+    printf '%s\n' "$API_RESPONSE"
     return "${CURL_STATUS:-0}"
 }
 # Exercise the actual JSON parser, not a mock.
@@ -59,8 +60,10 @@ telegram_notify 0
 TELEGRAM_CHAT_ID=-12345
 API_RESPONSE='{"ok":true}'
 # Inherited xtrace cannot disclose the token.
+error_count=$(wc -l < "$TEST_DIR/errors")
 ( set -x; telegram_notify 0 ) 2> "$TEST_DIR/trace"
 if grep -q TEST_SECRET "$TEST_DIR/trace"; then exit 1; fi
+[[ $(wc -l < "$TEST_DIR/errors") == "$error_count" ]]
 # Run the production EXIT handler and preserve its result even when delivery fails.
 eval "$(sed -n '/^finalize_report_on_exit() {/,/^}/p' bin/smart-update)"
 REPORT_FILE="$TEST_DIR/report"
