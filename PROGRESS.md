@@ -2,7 +2,7 @@
 
 ## État actuel
 
-Version stable : `v1.1.1`
+Version stable : `v1.1.2`
 
 Smart Update est désormais une version stable validée sur Arch Linux. Le moteur
 analyse les mises à jour, prépare un contexte transactionnel libalpm, applique
@@ -46,6 +46,16 @@ l'installation qu'après la décision finale.
   inchangés ;
 - test de régression ajouté pour le cas AUR désactivé.
 
+## Correctif livré en v1.1.2
+
+- correction d'un faux message `[ERROR]` lorsque `checkupdates` renvoie le code
+  `2`, qui signifie normalement qu'aucune mise à jour officielle n'est disponible ;
+- `checkupdates` est désormais exécuté dans un contexte conditionnel afin que le
+  `trap ERR` global ne traite plus ce résultat normal comme une erreur ;
+- aucun changement du moteur de décision, des politiques, des codes de sortie ou
+  du modèle de sécurité ;
+- test de régression ajouté pour le cas « système déjà à jour ».
+
 ## Validation v1.1.0
 
 - 46 tests automatisés réussis ;
@@ -77,6 +87,15 @@ l'installation qu'après la décision finale.
   `bba0bda069f44d48497be52f52b2279e123afbef69fab9afa3d8212f4d2d28d8` ;
 - release GitHub `v1.1.1` publiée avec le paquet et `SHA256SUMS`.
 
+## Validation v1.1.2
+
+- syntaxe Bash validée ;
+- ShellCheck validé ;
+- construction et installation CI validées sur Arch Linux ;
+- suite complète portée à 47 tests automatisés ;
+- validation systemd conservée ;
+- le scénario `checkupdates` = code `2` ne déclenche plus le `trap ERR`.
+
 ## Invariants de sécurité
 
 - aucune politique n'installe directement de paquet ;
@@ -93,6 +112,6 @@ l'installation qu'après la décision finale.
 
 ## Prochaine étape
 
-La branche `master` reste la base de développement après `v1.1.1`. Les nouvelles
+La branche `master` reste la base de développement après `v1.1.2`. Les nouvelles
 fonctionnalités appartiendront à la prochaine version mineure ; une `v1.1.x`
 restera réservée aux correctifs nécessaires de la ligne stable 1.1.
