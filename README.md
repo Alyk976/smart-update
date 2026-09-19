@@ -6,7 +6,7 @@
   <a href="https://github.com/Alyk976/smart-update/actions/workflows/ci.yml"><img src="https://github.com/Alyk976/smart-update/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/Alyk976/smart-update/releases/latest"><img src="https://img.shields.io/github/v/release/Alyk976/smart-update?display_name=tag" alt="Latest release"></a>
   <a href="https://github.com/Alyk976/smart-update/blob/master/LICENSE"><img src="https://img.shields.io/github/license/Alyk976/smart-update" alt="License"></a>
-  <img src="https://img.shields.io/badge/tests-46%20automated-success" alt="46 automated tests">
+  <img src="https://img.shields.io/badge/tests-47%20automated-success" alt="47 automated tests">
   <a href="https://archlinux.org/"><img src="https://img.shields.io/badge/Arch%20Linux-supported-1793D1?logo=archlinux&logoColor=white" alt="Arch Linux"></a>
 </p>
 
@@ -75,7 +75,7 @@ The visual above is an **illustrative policy flow**, not a captured terminal ses
 
 ## Current stable release
 
-**Smart Update v1.1.1** is the current stable maintenance release.
+**Smart Update v1.1.2** is the current stable maintenance release.
 
 Release validation includes:
 
