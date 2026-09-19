@@ -226,10 +226,11 @@ finalize_report_on_exit() {
 load_updates() {
     local output status line package_name
     logger_info "Recherche sécurisée des mises à jour."
-    set +e
-    output=$(CHECKUPDATES_DB="$CHECKUPDATES_DB_PATH" checkupdates 2>&1)
-    status=$?
-    set -e
+    if output=$(CHECKUPDATES_DB="$CHECKUPDATES_DB_PATH" checkupdates 2>&1); then
+        status=0
+    else
+        status=$?
+    fi
     case "$status" in
         0) mapfile -t UPDATE_LINES <<<"$output" ;;
         2) logger_info "Aucune mise à jour officielle disponible."; return 0 ;;
