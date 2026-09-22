@@ -153,6 +153,8 @@ source "$EXIT_CODES_MODULE"
 source "$SYSTEM_CHECKS_MODULE"
 # shellcheck source=lib/report.sh
 source "$REPORT_MODULE"
+# shellcheck source=lib/telegram.sh
+source "${LIB_DIR}/telegram.sh"
 # shellcheck source=lib/engine.sh
 source "$ENGINE_MODULE"
 # shellcheck source=lib/arch_news_context.sh
@@ -220,6 +222,7 @@ finalize_report_on_exit() {
         report_finalize "$exit_code" || true
     fi
 
+    telegram_notify "$exit_code" || true
     exit "$exit_code"
 }
 

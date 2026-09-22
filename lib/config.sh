@@ -98,6 +98,14 @@ config_load() {
     # ne doit pas masquer l'absence de ce paramètre obligatoire dans le fichier.
     unset ALLOW_CRITICAL_UPDATES ENABLE_AUR_UPDATES AUR_HELPER AUR_USER
 
+    # Notification defaults are consumed by lib/telegram.sh.
+    # shellcheck disable=SC2034
+    TELEGRAM_ENABLED="no"
+    # shellcheck disable=SC2034
+    TELEGRAM_CHAT_ID=""
+    # shellcheck disable=SC2034
+    TELEGRAM_TOKEN_FILE="/etc/smart-update/telegram.token"
+
     # shellcheck disable=SC1090
     source "$config_file"
 

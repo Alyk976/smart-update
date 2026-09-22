@@ -55,7 +55,9 @@ report_finalize() {
     duration_hours=$((duration_seconds / 3600))
     duration_minutes=$(((duration_seconds % 3600) / 60))
     duration_remaining_seconds=$((duration_seconds % 60))
-    foreign_package_count=$(pacman -Qmq 2>/dev/null | wc -l)
+    # pacman -Qmq returns 1 when no foreign package exists. This is a normal
+    # empty result and must not abort report finalization under pipefail.
+    foreign_package_count=$(pacman -Qmq 2>/dev/null | wc -l) || true
     exit_label=$(exit_code_label "$exit_code")
     exit_description=$(exit_code_description "$exit_code")
     declare -p AUR_UPDATE_NAMES >/dev/null 2>&1 \
